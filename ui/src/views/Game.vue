@@ -1,6 +1,8 @@
 <template>
   <div class="game">
-    <galaxy-map v-if="data" :data="data" />
+    <div class="details" v-if="data">
+      <galaxy-map :data="data" />
+    </div>
     <div class="form-wrapper" v-else-if="requiresAuth">
       <form class="form" @submit.prevent="tryCode">
         <label for="accessCode">Enter Access Code:</label>
@@ -23,6 +25,17 @@ import { APIResponse } from '@/types/api';
 @Component({
   components: {
     GalaxyMap,
+  },
+  metaInfo() {
+    const me = this as any;
+
+    const title = me.data && me.data.scanning_data
+      ? me.data.scanning_data.name
+      : 'Loading';
+
+    return {
+      title: `${title} (${me.gameNumber})`,
+    };
   },
 })
 export default class Game extends Vue {
@@ -101,7 +114,7 @@ export default class Game extends Vue {
 </script>
 
 <style scoped lang="scss">
-.game {
+.game, .details {
   display: flex;
   flex-direction: column;
   flex-grow: 1;

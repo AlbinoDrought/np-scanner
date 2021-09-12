@@ -8,7 +8,11 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
 
-@Component({})
+@Component({
+  metaInfo: {
+    title: 'Not Found',
+  },
+})
 export default class NotFound extends Vue {
 }
 </script>

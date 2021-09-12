@@ -4,6 +4,20 @@
   </div>
 </template>
 
+<script lang="ts">
+import {
+  Component, Vue,
+} from 'vue-property-decorator';
+
+@Component({
+  metaInfo: {
+    titleTemplate: '%s | NP Scanner',
+  },
+})
+export default class App extends Vue {
+}
+</script>
+
 <style lang="scss">
 html, body {
   background-color: black;

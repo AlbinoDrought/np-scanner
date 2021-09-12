@@ -24,6 +24,9 @@ import { APIResponse } from '@/types/api';
   components: {
     GalaxyMap,
   },
+  metaInfo: {
+    title: 'Home',
+  },
 })
 export default class Home extends Vue {
   private gameNumber = '';
