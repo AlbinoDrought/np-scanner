@@ -3,6 +3,7 @@ module go.albinodrought.com/neptunes-pride
 go 1.17
 
 require (
+	github.com/gorilla/mux v1.8.0
 	github.com/spf13/cobra v1.2.1
 	go.etcd.io/bbolt v1.3.6
 )

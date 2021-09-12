@@ -20,4 +20,5 @@ func init() {
 	addGlobalConfigFlags(rootCmd)
 	rootCmd.AddCommand(pollCmd)
 	rootCmd.AddCommand(setCmd)
+	rootCmd.AddCommand(serveCmd)
 }
