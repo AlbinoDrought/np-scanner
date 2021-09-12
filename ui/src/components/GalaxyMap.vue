@@ -12,32 +12,94 @@ import { Network, Node, Edge } from 'vis-network';
 
 import { APIResponse } from '@/types/api';
 
+const colorBase = [
+  'rgba(0, 0, 255, 1)',
+  'rgba(0, 159, 223, 1)',
+  'rgba(64, 192, 0, 1)',
+  'rgba(255, 192, 0, 1)',
+  'rgba(223, 95, 0, 1)',
+  'rgba(192, 0, 0, 1)',
+  'rgba(192, 0, 192, 1)',
+  'rgba(96, 0, 192, 1)',
+];
+
+const colorBaseExtended = [
+  'rgba(179, 191, 255, 1)',
+  'rgba(179, 255, 255, 1)',
+  'rgba(179, 255, 179, 1)',
+  'rgba(255, 255, 179, 1)',
+  'rgba(255, 204, 153, 1)',
+  'rgba(255, 153, 153, 1)',
+  'rgba(255, 153, 204, 1)',
+  'rgba(204, 153, 255, 1)',
+];
+
 const neptuneColor = (slot: number) => {
   if (slot === -1) {
     return 'grey';
   }
 
-  return [
-    'rgba(0, 0, 255, 1)',
-    'rgba(0, 159, 223, 1)',
-    'rgba(64, 192, 0, 1)',
-    'rgba(255, 192, 0, 1)',
-    'rgba(223, 95, 0, 1)',
-    'rgba(192, 0, 0, 1)',
-    'rgba(192, 0, 192, 1)',
-    'rgba(96, 0, 192, 1)',
-  ][slot % 8];
+  if (slot < 56) {
+    return colorBase[slot % colorBase.length];
+  }
+
+  return colorBaseExtended[slot % colorBaseExtended.length];
+};
+
+const shapes = [
+  'dot',
+  'square',
+  'hexagon',
+  'triangle',
+  'triangleDown',
+  'diamond',
+  'star',
+  'dot', // should be pill
+];
+
+const neptuneShape = (slot: number) => {
+  if (slot === -1) {
+    return 'dot';
+  }
+
+  return shapes[Math.floor(slot / shapes.length) % shapes.length];
 };
 
 const groups: { [key: string]: Partial<Node> } = {};
 
-for (let i = -1; i < 8; i += 1) {
+for (let i = -1; i < 64; i += 1) {
   const color = neptuneColor(i);
-  groups[`${i}`] = {
+  const shape = neptuneShape(i);
+  groups[`${i}-stars`] = {
     color: {
       background: color,
-      border: color,
+      border: 'black',
     },
+    shape,
+    fixed: { x: true, y: true },
+    font: {
+      color: 'white',
+      strokeColor: 'black',
+      strokeWidth: 2,
+      size: 32,
+    },
+    size: 30,
+  };
+  groups[`${i}-fleets`] = {
+    color: {
+      background: color,
+      border: 'black',
+    },
+    shape,
+    fixed: { x: true, y: true },
+    font: {
+      color: 'white',
+      strokeColor: 'black',
+      strokeWidth: 2,
+      size: 16,
+    },
+    borderWidth: 1,
+    size: 15,
   };
 }
 
@@ -75,19 +137,10 @@ export default class GalaxyMap extends Vue {
       data.push({
         id: `fleet-${fleet.uid}`,
         label: `${fleet.n}\n${fleet.ouid ? '' : fleet.st}`,
-        group: `${fleet.puid}`,
+        group: `${fleet.puid}-fleets`,
         fixed: { x: true, y: true },
         x: parseFloat(fleet.x) * this.scale,
         y: parseFloat(fleet.y) * this.scale,
-
-        shape: 'diamond',
-        font: {
-          color: 'white',
-          strokeColor: 'black',
-          strokeWidth: 2,
-          size: 16,
-        },
-        size: 15,
       });
 
       if (fleet.ouid) {
@@ -119,26 +172,16 @@ export default class GalaxyMap extends Vue {
       data.push({
         id: `star-${star.uid}`,
         label: `${star.n}\n${star.v === '1' ? powerAtStar : '?'}`,
-        group: `${star.puid}`,
-        fixed: { x: true, y: true },
+        group: `${star.puid}-stars`,
         x: parseFloat(star.x) * this.scale,
         y: parseFloat(star.y) * this.scale,
-
-        shape: 'dot',
-        font: {
-          color: 'white',
-          strokeColor: 'black',
-          strokeWidth: 2,
-          size: 32,
-        },
-        size: 30,
       });
     });
 
     this.lastChart = new Network(
       this.$refs.container as HTMLElement,
       {
-        nodes: data,
+        nodes: data.reverse(),
         edges,
       },
       {
