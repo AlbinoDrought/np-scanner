@@ -11,6 +11,7 @@ import (
 )
 
 var ErrMatchNotFound = errors.New("match not found")
+var ErrSnapshotNotFound = errors.New("snapshot not found")
 
 type MatchStore interface {
 	Matches() ([]string, error)
@@ -18,6 +19,7 @@ type MatchStore interface {
 	FindMatchOrFail(gameNumber string) (*matches.Match, error)
 	FindOrCreateMatch(gameNumber string) (*matches.Match, error)
 
+	FindSnapshot(gameNumber string, playerID int, time int64) (*types.APIResponse, error)
 	SaveSnapshot(gameNumber string, snapshot *types.APIResponse) error
 }
 
@@ -122,6 +124,41 @@ func (store *boltMatchStore) FindOrCreateMatch(gameNumber string) (*matches.Matc
 	return foundMatch, nil
 }
 
+func (store *boltMatchStore) FindSnapshot(gameNumber string, playerID int, time int64) (*types.APIResponse, error) {
+	var foundSnapshotSerialized []byte
+
+	err := store.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("snapshots")).Bucket([]byte(gameNumber))
+		if bucket == nil {
+			return ErrSnapshotNotFound
+		}
+
+		bucket = bucket.Bucket([]byte(strconv.Itoa(playerID)))
+		if bucket == nil {
+			return ErrSnapshotNotFound
+		}
+
+		foundSnapshotSerialized = bucket.Get([]byte(strconv.FormatInt(time, 10)))
+		if foundSnapshotSerialized == nil {
+			return ErrSnapshotNotFound
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	foundSnapshot := &types.APIResponse{}
+	err = json.Unmarshal(foundSnapshotSerialized, foundSnapshot)
+	if err != nil {
+		return nil, err
+	}
+
+	return foundSnapshot, nil
+}
+
 func (store *boltMatchStore) SaveSnapshot(gameNumber string, snapshot *types.APIResponse) error {
 	serialized, err := json.Marshal(snapshot)
 	if err != nil {
@@ -131,6 +168,11 @@ func (store *boltMatchStore) SaveSnapshot(gameNumber string, snapshot *types.API
 
 	return store.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.Bucket([]byte("snapshots")).CreateBucketIfNotExists([]byte(gameNumber))
+		if err != nil {
+			return err
+		}
+
+		bucket, err = bucket.CreateBucketIfNotExists([]byte(strconv.Itoa(snapshot.ScanningData.PlayerUID)))
 		if err != nil {
 			return err
 		}
