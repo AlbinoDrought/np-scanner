@@ -1,9 +1,6 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link>
-    </div>
-    <router-view/>
+    <router-view />
   </div>
 </template>
 
@@ -11,5 +8,14 @@
 html, body {
   background-color: black;
   color: gold;
+  margin: 0;
+  min-height: 100vh;
+}
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100%;
+  width: 100%;
 }
 </style>

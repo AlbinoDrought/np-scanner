@@ -23,6 +23,10 @@ export default class Home extends Vue {
 
 <style scoped lang="scss">
 .home {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  width: 100%;
   height: 100%;
 }
 </style>
