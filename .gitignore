@@ -1,3 +1,5 @@
 *.json
 *.db
 dist
+internal/web/packaged
+internal/web/rice-box.go

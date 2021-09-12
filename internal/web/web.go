@@ -6,15 +6,20 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 	"go.albinodrought.com/neptunes-pride/internal/matchstore"
 	"go.albinodrought.com/neptunes-pride/internal/npapi"
 	"go.albinodrought.com/neptunes-pride/internal/opsec"
 	"go.albinodrought.com/neptunes-pride/internal/types"
 )
+
+//go:generate $GOPATH/bin/rice embed-go
 
 type WebOptions struct {
 	Address string
@@ -133,5 +138,41 @@ func (ws *webServer) Router() *mux.Router {
 	r.HandleFunc("/api/matches/{gameNumber}", ws.ShowMatch)
 	r.HandleFunc("/api/matches/{gameNumber}/merged-snapshot", ws.ShowMergedSnapshot)
 
+	box := rice.MustFindBox("packaged")
+	r.PathPrefix("/").Handler(http.FileServer(&SPAFileSystem{box.HTTPBox()}))
+
 	return r
+}
+
+// SPAFileSystem allows you to use history-based routing.
+// All calls will load the index.html SPA unless a file asset is found.
+type SPAFileSystem struct {
+	http.FileSystem
+}
+
+func (fs *SPAFileSystem) forceFallback() (http.File, error) {
+	return fs.FileSystem.Open("/index.html")
+}
+
+// Open a file or respond with the fallback contents
+func (fs *SPAFileSystem) Open(name string) (http.File, error) {
+	file, err := fs.FileSystem.Open(name)
+
+	// prevent redirect loops, ignore root /
+	if strings.TrimLeft(name, "/") == "" {
+		return file, err
+	}
+
+	// api calls should never load SPA
+	if strings.HasPrefix(name, "/api") {
+		return file, err
+	}
+
+	// load SPA if file doesn't exist
+	if err != nil && os.IsNotExist(err) {
+		return fs.forceFallback()
+	}
+
+	// file actually exists, return it
+	return file, err
 }
