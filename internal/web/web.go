@@ -13,6 +13,7 @@ import (
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
+	"go.albinodrought.com/neptunes-pride/internal/actions"
 	"go.albinodrought.com/neptunes-pride/internal/matchstore"
 	"go.albinodrought.com/neptunes-pride/internal/npapi"
 	"go.albinodrought.com/neptunes-pride/internal/opsec"
@@ -22,11 +23,13 @@ import (
 //go:generate $GOPATH/bin/rice embed-go
 
 type WebOptions struct {
-	Address string
+	Address    string
+	PollPeriod time.Duration
 }
 
 var DefaultWebOptions = WebOptions{
-	Address: ":38080",
+	Address:    ":38080",
+	PollPeriod: time.Minute * 5,
 }
 
 func Run(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, options *WebOptions) error {
@@ -52,6 +55,11 @@ func Run(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPri
 		server.Shutdown(shutdownCtx)
 	}()
 
+	if options.PollPeriod > 0 {
+		go webServer.Poll(options.PollPeriod)
+		log.Println("automatically polling every", options.PollPeriod)
+	}
+
 	log.Println("Serving on", options.Address)
 	return server.ListenAndServe()
 }
@@ -60,6 +68,26 @@ type webServer struct {
 	ctx    context.Context
 	db     matchstore.MatchStore
 	client npapi.NeptunesPrideClient
+}
+
+func (ws *webServer) Poll(period time.Duration) {
+	// written this way so the timer fires immediately on fn enter
+	// eventually gets reset with the proper period
+	timer := time.NewTimer(0)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-ws.ctx.Done():
+			return
+		case <-timer.C:
+			err := actions.PollAllMatches(ws.ctx, ws.db, ws.client, nil)
+			if err != nil {
+				log.Println("error while doing periodic pull", err)
+			}
+			timer.Reset(period)
+		}
+	}
 }
 
 func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {

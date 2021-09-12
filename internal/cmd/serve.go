@@ -3,13 +3,15 @@ package cmd
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/spf13/cobra"
 	"go.albinodrought.com/neptunes-pride/internal/web"
 )
 
 var (
-	serveCmdAddress string
+	serveCmdAddress    string
+	serveCmdPollPeriod time.Duration
 )
 
 var serveCmd = &cobra.Command{
@@ -24,7 +26,8 @@ var serveCmd = &cobra.Command{
 		client := openClient()
 
 		err = web.Run(context.Background(), db, client, &web.WebOptions{
-			Address: serveCmdAddress,
+			Address:    serveCmdAddress,
+			PollPeriod: serveCmdPollPeriod,
 		})
 		if err != nil {
 			log.Fatal(err)
@@ -33,5 +36,6 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
-	serveCmd.Flags().StringVar(&serveCmdAddress, "address", ":38080", "Address to listen on")
+	serveCmd.Flags().StringVar(&serveCmdAddress, "address", web.DefaultWebOptions.Address, "Address to listen on")
+	serveCmd.Flags().DurationVar(&serveCmdPollPeriod, "poll-period", web.DefaultWebOptions.PollPeriod, "Check for match updates this often")
 }
