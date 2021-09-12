@@ -53,6 +53,8 @@ export default class Game extends Vue {
 
   private error: Error|null = null;
 
+  private interval: number|null = null;
+
   public async tryCode() {
     this.submitText = 'Trying code...';
     this.accessCode = this.temporaryAccessCode;
@@ -77,8 +79,13 @@ export default class Game extends Vue {
   }
 
   public async mounted() {
+    this.interval = setInterval(() => this.loadData(), 5 * 60 * 1000);
     this.setAccessCodeFromRoute();
     await this.loadData();
+  }
+
+  public beforeDestroy() {
+    clearInterval(this.interval!);
   }
 
   @Watch('$route')
