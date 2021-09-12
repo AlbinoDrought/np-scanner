@@ -11,7 +11,7 @@ import (
 var setCmd = &cobra.Command{
 	Use:   "set [game number] [key]",
 	Short: "Set player credentials for a game",
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := openDB()
 		if err != nil {

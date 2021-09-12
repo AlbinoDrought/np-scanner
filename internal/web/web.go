@@ -14,6 +14,7 @@ import (
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 	"go.albinodrought.com/neptunes-pride/internal/actions"
+	"go.albinodrought.com/neptunes-pride/internal/matches"
 	"go.albinodrought.com/neptunes-pride/internal/matchstore"
 	"go.albinodrought.com/neptunes-pride/internal/npapi"
 	"go.albinodrought.com/neptunes-pride/internal/opsec"
@@ -70,6 +71,22 @@ type webServer struct {
 	client npapi.NeptunesPrideClient
 }
 
+func (ws *webServer) authorize(w http.ResponseWriter, r *http.Request, match *matches.Match) bool {
+	if !match.HasAccessCode() {
+		return true
+	}
+
+	err := match.CheckAccessCode([]byte(r.URL.Query().Get("access_code")))
+	if err == nil {
+		return true
+	}
+
+	w.WriteHeader(http.StatusUnauthorized)
+	w.Write([]byte("Wrong access code"))
+	log.Printf("Authorization failed for match %v: %v", match.GameNumber, err)
+	return false
+}
+
 func (ws *webServer) Poll(period time.Duration) {
 	// written this way so the timer fires immediately on fn enter
 	// eventually gets reset with the proper period
@@ -102,6 +119,10 @@ func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !ws.authorize(w, r, match) {
+		return
+	}
+
 	for i, creds := range match.PlayerCreds {
 		creds.APIKey = ""
 		match.PlayerCreds[i] = creds
@@ -120,6 +141,10 @@ func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Match not found"))
 		log.Printf("Match %v not found: %v", gameNumber, err)
+		return
+	}
+
+	if !ws.authorize(w, r, match) {
 		return
 	}
 
