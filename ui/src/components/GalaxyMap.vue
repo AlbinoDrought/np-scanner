@@ -66,30 +66,15 @@ export default class GalaxyMap extends Vue {
       this.lastChart = null;
     }
 
-    const data = Object.values(this.data.scanning_data!.stars).map((star): Node => ({
-      id: `star-${star.uid}`,
-      label: `${star.n}\n${star.v === '1' ? star.st : '?'}`,
-      group: `${star.puid}`,
-      fixed: { x: true, y: true },
-      x: parseFloat(star.x) * this.scale,
-      y: parseFloat(star.y) * this.scale,
-
-      shape: 'dot',
-      font: {
-        color: 'white',
-        strokeColor: 'black',
-        strokeWidth: 2,
-        size: 32,
-      },
-      size: 30,
-    }));
-
+    const data: Node[] = [];
     const edges: Edge[] = [];
+
+    const fleetPowerDockedAtStars = new Map<number, number>();
 
     Object.values(this.data.scanning_data!.fleets).forEach((fleet) => {
       data.push({
         id: `fleet-${fleet.uid}`,
-        label: `${fleet.n}\n${fleet.st}`,
+        label: `${fleet.n}\n${fleet.ouid ? '' : fleet.st}`,
         group: `${fleet.puid}`,
         fixed: { x: true, y: true },
         x: parseFloat(fleet.x) * this.scale,
@@ -105,6 +90,12 @@ export default class GalaxyMap extends Vue {
         size: 15,
       });
 
+      if (fleet.ouid) {
+        let currentDockedPower = fleetPowerDockedAtStars.get(fleet.ouid) || 0;
+        currentDockedPower += fleet.st;
+        fleetPowerDockedAtStars.set(fleet.ouid, currentDockedPower);
+      }
+
       let start = `fleet-${fleet.uid}`;
       fleet.o.forEach((order, i) => {
         const end = `star-${order[1]}`;
@@ -119,6 +110,28 @@ export default class GalaxyMap extends Vue {
         });
 
         start = end;
+      });
+    });
+
+    Object.values(this.data.scanning_data!.stars).forEach((star) => {
+      const fleetPowerDockedAtStar = fleetPowerDockedAtStars.get(star.uid) || 0;
+      const powerAtStar = (star.st || 0) + fleetPowerDockedAtStar;
+      data.push({
+        id: `star-${star.uid}`,
+        label: `${star.n}\n${star.v === '1' ? powerAtStar : '?'}`,
+        group: `${star.puid}`,
+        fixed: { x: true, y: true },
+        x: parseFloat(star.x) * this.scale,
+        y: parseFloat(star.y) * this.scale,
+
+        shape: 'dot',
+        font: {
+          color: 'white',
+          strokeColor: 'black',
+          strokeWidth: 2,
+          size: 32,
+        },
+        size: 30,
       });
     });
 
