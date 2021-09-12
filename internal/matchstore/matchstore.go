@@ -164,7 +164,6 @@ func (store *boltMatchStore) SaveSnapshot(gameNumber string, snapshot *types.API
 	if err != nil {
 		return err
 	}
-	key := strconv.FormatInt(snapshot.ScanningData.Now, 10) + "_" + strconv.Itoa(snapshot.ScanningData.PlayerUID)
 
 	return store.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.Bucket([]byte("snapshots")).CreateBucketIfNotExists([]byte(gameNumber))
@@ -177,6 +176,6 @@ func (store *boltMatchStore) SaveSnapshot(gameNumber string, snapshot *types.API
 			return err
 		}
 
-		return bucket.Put([]byte(key), serialized)
+		return bucket.Put([]byte(strconv.FormatInt(snapshot.ScanningData.Now, 10)), serialized)
 	})
 }
