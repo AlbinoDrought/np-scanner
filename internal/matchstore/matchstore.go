@@ -2,13 +2,18 @@ package matchstore
 
 import (
 	"encoding/json"
+	"errors"
 
 	"go.albinodrought.com/neptunes-pride/internal/matches"
 	bolt "go.etcd.io/bbolt"
 )
 
+var ErrMatchNotFound = errors.New("match not found")
+
 type MatchStore interface {
+	Matches() ([]string, error)
 	SaveMatch(match *matches.Match) error
+	FindMatchOrFail(gameNumber string) (*matches.Match, error)
 	FindOrCreateMatch(gameNumber string) (*matches.Match, error)
 }
 
@@ -38,6 +43,26 @@ type boltMatchStore struct {
 	db *bolt.DB
 }
 
+func (store *boltMatchStore) Matches() ([]string, error) {
+	gameNumbers := []string{}
+
+	err := store.db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("matches")).Cursor()
+
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			gameNumbers = append(gameNumbers, string(k))
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return gameNumbers, nil
+}
+
 func (store *boltMatchStore) SaveMatch(match *matches.Match) error {
 	serialized, err := json.Marshal(match)
 	if err != nil {
@@ -49,7 +74,7 @@ func (store *boltMatchStore) SaveMatch(match *matches.Match) error {
 	})
 }
 
-func (store *boltMatchStore) FindOrCreateMatch(gameNumber string) (*matches.Match, error) {
+func (store *boltMatchStore) FindMatchOrFail(gameNumber string) (*matches.Match, error) {
 	var foundMatchSerialized []byte
 
 	err := store.db.View(func(tx *bolt.Tx) error {
@@ -61,13 +86,26 @@ func (store *boltMatchStore) FindOrCreateMatch(gameNumber string) (*matches.Matc
 		return nil, err
 	}
 
-	foundMatch := &matches.Match{}
-
 	if foundMatchSerialized == nil {
+		return nil, ErrMatchNotFound
+	}
+
+	foundMatch := &matches.Match{}
+	err = json.Unmarshal(foundMatchSerialized, foundMatch)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return foundMatch, nil
+}
+
+func (store *boltMatchStore) FindOrCreateMatch(gameNumber string) (*matches.Match, error) {
+	foundMatch, err := store.FindMatchOrFail(gameNumber)
+
+	if err == ErrMatchNotFound {
 		foundMatch = matches.NewMatch(gameNumber)
 		err = store.SaveMatch(foundMatch)
-	} else {
-		err = json.Unmarshal(foundMatchSerialized, foundMatch)
 	}
 
 	if err != nil {

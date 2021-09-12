@@ -18,6 +18,6 @@ func Execute() error {
 
 func init() {
 	addGlobalConfigFlags(rootCmd)
-	rootCmd.AddCommand(fetchCmd)
+	rootCmd.AddCommand(pollCmd)
 	rootCmd.AddCommand(setCmd)
 }
