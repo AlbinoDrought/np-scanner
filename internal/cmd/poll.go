@@ -4,10 +4,16 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/spf13/cobra"
 	"go.albinodrought.com/neptunes-pride/internal/npapi"
 	"go.albinodrought.com/neptunes-pride/internal/types"
+)
+
+var (
+	pollCmdForce         bool
+	pollCmdMinTimePassed time.Duration
 )
 
 var pollCmd = &cobra.Command{
@@ -42,7 +48,12 @@ var pollCmd = &cobra.Command{
 
 			var lastResp *types.APIResponse
 
-			for _, config := range match.PlayerCreds {
+			for i, config := range match.PlayerCreds {
+				if !pollCmdForce && time.Since(config.LastPoll) < pollCmdMinTimePassed {
+					log.Printf("recently polled game %v user %v on %v", gameNumber, config.PlayerUID, config.LastPoll)
+					continue
+				}
+
 				resp, err := client.State(context.Background(), &npapi.Request{
 					GameNumber: gameNumber,
 					APIKey:     config.APIKey,
@@ -51,6 +62,9 @@ var pollCmd = &cobra.Command{
 				if err != nil {
 					log.Fatalf("failed fetching state for game %v user %v: %v", gameNumber, config.PlayerUID, err)
 				}
+
+				config.LastPoll = time.Now()
+				match.PlayerCreds[i] = config
 
 				log.Printf("retrieved state for game %v user %v \"%v\"", gameNumber, config.PlayerUID, resp.ScanningData.Players[strconv.Itoa(config.PlayerUID)].Alias)
 				lastResp = resp
@@ -62,10 +76,16 @@ var pollCmd = &cobra.Command{
 				}
 			}
 
+			match.LastPoll = time.Now()
 			err = db.SaveMatch(match)
 			if err != nil {
 				log.Fatalf("failed saving game %v: %v", gameNumber, err)
 			}
 		}
 	},
+}
+
+func init() {
+	pollCmd.Flags().BoolVar(&pollCmdForce, "force", false, "Poll matches without regard for last-polled time")
+	pollCmd.Flags().DurationVar(&pollCmdMinTimePassed, "min-time-passed", 15*time.Minute, "This much time must pass before we poll again")
 }
