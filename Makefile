@@ -1,5 +1,5 @@
 .PHONY: dist/neptunes-scanner
-dist/neptunes-scanner: # ui
+dist/neptunes-scanner: ui
 	rm -rf internal/web/packaged && mkdir -p internal/web/packaged
 	cp -ar ui/dist/. internal/web/packaged/.
 	go get
