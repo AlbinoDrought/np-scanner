@@ -31,6 +31,9 @@ export default class Game extends Vue {
     this.error = null;
     try {
       const resp = await fetch(`/api/matches/${this.gameNumber}/merged-snapshot`);
+      if (!resp.ok) {
+        throw new Error(await resp.text());
+      }
       const json = await resp.json();
       this.data = json as APIResponse;
     } catch (ex) {
