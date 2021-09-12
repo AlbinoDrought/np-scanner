@@ -10,6 +10,9 @@ html, body {
   color: gold;
   margin: 0;
   min-height: 100vh;
+
+  /* dragging a laggy vis.js network graph can trigger pull-refresh actions, squelch those */
+  overscroll-behavior: contain;
 }
 #app {
   display: flex;

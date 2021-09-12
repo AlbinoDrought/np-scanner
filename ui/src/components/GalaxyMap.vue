@@ -145,6 +145,9 @@ export default class GalaxyMap extends Vue {
         physics: {
           enabled: false,
         },
+        interaction: {
+          dragNodes: false,
+        },
         groups,
       },
     );
