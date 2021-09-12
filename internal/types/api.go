@@ -1,37 +1,38 @@
 package types
 
 type Fleet struct {
-	UID  int     `json:"uid"`
-	L    int     `json:"l"`
-	O    [][]int `json:"o"`
-	N    string  `json:"n"`
-	Puid int     `json:"puid"`
-	W    int     `json:"w"`
-	Y    string  `json:"y"`
-	X    string  `json:"x"`
-	St   int     `json:"st"`
-	Lx   string  `json:"lx"`
-	Ly   string  `json:"ly"`
+	UID         int     `json:"uid"`
+	Unknown     int     `json:"l"`
+	Orders      [][]int `json:"o"`
+	Name        string  `json:"n"`
+	PlayerID    int     `json:"puid"`
+	CurrentStar int     `json:"ouid"`
+	WarpSpeed   int     `json:"w"`
+	CurrentX    string  `json:"x"`
+	CurrentY    string  `json:"y"`
+	Strength    int     `json:"st"`
+	LastX       string  `json:"lx"`
+	LastY       string  `json:"ly"`
 }
 
 type PublicStar struct {
-	UID  int    `json:"uid"`
-	N    string `json:"n"`
-	Puid int    `json:"puid"`
-	V    string `json:"v"`
-	Y    string `json:"y"`
-	X    string `json:"x"`
+	UID      int    `json:"uid"`
+	Name     string `json:"n"`
+	PlayerID int    `json:"puid"`
+	Visible  string `json:"v"`
+	X        string `json:"x"`
+	Y        string `json:"y"`
 }
 
 type PrivateStar struct {
-	C  float64 `json:"c"`
-	E  int     `json:"e"`
-	I  int     `json:"i"`
-	S  int     `json:"s"`
-	R  int     `json:"r"`
-	Ga int     `json:"ga"`
-	Nr int     `json:"nr"`
-	St int     `json:"st"`
+	ShipsPerTick     float64 `json:"c"`
+	Economy          int     `json:"e"`
+	Industry         int     `json:"i"`
+	Science          int     `json:"s"`
+	Resources        int     `json:"r"`
+	WarpGate         int     `json:"ga"`
+	NaturalResources int     `json:"nr"`
+	Strength         int     `json:"st"`
 }
 
 type Star struct {
@@ -45,10 +46,10 @@ type PublicTechResearchStatus struct {
 }
 
 type PrivateTechResearchStatus struct {
-	Sv       float64 `json:"sv"`
-	Research int     `json:"research"`
-	Bv       float64 `json:"bv"`
-	Brr      int     `json:"brr"`
+	Sv               float64 `json:"sv"`
+	Research         int     `json:"research"`
+	Bv               float64 `json:"bv"`
+	CostPerTechLevel int     `json:"brr"`
 }
 
 type TechResearchStatus struct {
