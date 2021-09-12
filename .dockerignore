@@ -1,6 +1,8 @@
 .git
+.deployment
 ui/node_modules
 internal/web/packaged
 internal/web/rice-box.go
 *.db
 dist
+*.tar
