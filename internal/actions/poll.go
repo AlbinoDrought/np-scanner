@@ -84,6 +84,7 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 		}
 
 		config.LastPoll = time.Now()
+		config.LatestSnapshot = resp.ScanningData.Now
 		match.PlayerCreds[i] = config
 
 		log.Printf("retrieved state for game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
