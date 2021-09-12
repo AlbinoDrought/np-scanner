@@ -10,9 +10,11 @@ type Match struct {
 }
 
 type PlayerCreds struct {
-	PlayerUID int       `json:"player_uid"`
-	APIKey    string    `json:"api_key"`
-	LastPoll  time.Time `json:"last_poll"`
+	PlayerUID      int       `json:"player_uid"`
+	PlayerAlias    string    `json:"player_alias"`
+	APIKey         string    `json:"api_key"`
+	LastPoll       time.Time `json:"last_poll"`
+	LatestSnapshot int64     `json:"latest_snapshot"`
 }
 
 func NewMatch(gameNumber string) *Match {

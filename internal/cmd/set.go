@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"log"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	"go.albinodrought.com/neptunes-pride/internal/matches"
@@ -38,9 +39,14 @@ var setCmd = &cobra.Command{
 			log.Fatal("failed to find or create match", err)
 		}
 
+		if match.Name == "" {
+			match.Name = resp.ScanningData.Name
+		}
+
 		match.PlayerCreds[playerID] = matches.PlayerCreds{
-			PlayerUID: playerID,
-			APIKey:    args[1],
+			PlayerUID:   playerID,
+			PlayerAlias: resp.ScanningData.Players[strconv.Itoa(playerID)].Alias,
+			APIKey:      args[1],
 		}
 
 		err = db.SaveMatch(match)

@@ -3,8 +3,10 @@ package matchstore
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 
 	"go.albinodrought.com/neptunes-pride/internal/matches"
+	"go.albinodrought.com/neptunes-pride/internal/types"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -15,6 +17,8 @@ type MatchStore interface {
 	SaveMatch(match *matches.Match) error
 	FindMatchOrFail(gameNumber string) (*matches.Match, error)
 	FindOrCreateMatch(gameNumber string) (*matches.Match, error)
+
+	SaveSnapshot(gameNumber string, snapshot *types.APIResponse) error
 }
 
 func Open(path string) (MatchStore, error) {
@@ -33,6 +37,9 @@ func Open(path string) (MatchStore, error) {
 func boot(db *bolt.DB) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucketIfNotExists([]byte("matches")); err != nil {
+			return err
+		}
+		if _, err := tx.CreateBucketIfNotExists([]byte("snapshots")); err != nil {
 			return err
 		}
 		return nil
@@ -113,4 +120,21 @@ func (store *boltMatchStore) FindOrCreateMatch(gameNumber string) (*matches.Matc
 	}
 
 	return foundMatch, nil
+}
+
+func (store *boltMatchStore) SaveSnapshot(gameNumber string, snapshot *types.APIResponse) error {
+	serialized, err := json.Marshal(snapshot)
+	if err != nil {
+		return err
+	}
+	key := strconv.FormatInt(snapshot.ScanningData.Now, 10) + "_" + strconv.Itoa(snapshot.ScanningData.PlayerUID)
+
+	return store.db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.Bucket([]byte("snapshots")).CreateBucketIfNotExists([]byte(gameNumber))
+		if err != nil {
+			return err
+		}
+
+		return bucket.Put([]byte(key), serialized)
+	})
 }

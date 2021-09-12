@@ -3,12 +3,10 @@ package cmd
 import (
 	"context"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
 	"go.albinodrought.com/neptunes-pride/internal/npapi"
-	"go.albinodrought.com/neptunes-pride/internal/types"
 )
 
 var (
@@ -46,11 +44,9 @@ var pollCmd = &cobra.Command{
 				continue
 			}
 
-			var lastResp *types.APIResponse
-
 			for i, config := range match.PlayerCreds {
 				if !pollCmdForce && time.Since(config.LastPoll) < pollCmdMinTimePassed {
-					log.Printf("recently polled game %v user %v on %v", gameNumber, config.PlayerUID, config.LastPoll)
+					log.Printf("recently polled game %v user %v \"%v\" on %v", gameNumber, config.PlayerUID, config.PlayerAlias, config.LastPoll)
 					continue
 				}
 
@@ -60,20 +56,18 @@ var pollCmd = &cobra.Command{
 				})
 
 				if err != nil {
-					log.Fatalf("failed fetching state for game %v user %v: %v", gameNumber, config.PlayerUID, err)
+					log.Fatalf("failed fetching state for game %v user %v \"%v\": %v", gameNumber, config.PlayerUID, config.PlayerAlias, err)
+				}
+
+				err = db.SaveSnapshot(gameNumber, resp)
+				if err != nil {
+					log.Fatalf("failed saving snapshot for game %v user %v \"%v\": %v", gameNumber, config.PlayerUID, config.PlayerAlias, err)
 				}
 
 				config.LastPoll = time.Now()
 				match.PlayerCreds[i] = config
 
-				log.Printf("retrieved state for game %v user %v \"%v\"", gameNumber, config.PlayerUID, resp.ScanningData.Players[strconv.Itoa(config.PlayerUID)].Alias)
-				lastResp = resp
-			}
-
-			if lastResp != nil {
-				if match.Name == "" {
-					match.Name = lastResp.ScanningData.Name
-				}
+				log.Printf("retrieved state for game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
 			}
 
 			match.LastPoll = time.Now()
