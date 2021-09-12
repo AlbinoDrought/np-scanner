@@ -14,6 +14,11 @@ html, body {
   /* dragging a laggy vis.js network graph can trigger pull-refresh actions, squelch those */
   overscroll-behavior: contain;
 }
+
+a {
+  color: orangered;
+}
+
 #app {
   display: flex;
   flex-direction: column;
