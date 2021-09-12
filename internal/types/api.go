@@ -35,6 +35,10 @@ type PrivateStar struct {
 	Strength         int     `json:"st"`
 }
 
+func (ps PrivateStar) Useful() bool {
+	return ps.Economy > 0 || ps.Industry > 0 || ps.Science > 0 || ps.Resources > 0 || ps.WarpGate > 0 || ps.NaturalResources > 0 || ps.Strength > 0
+}
+
 type Star struct {
 	PublicStar
 	PrivateStar
@@ -50,6 +54,10 @@ type PrivateTechResearchStatus struct {
 	Research         int     `json:"research"`
 	Bv               float64 `json:"bv"`
 	CostPerTechLevel int     `json:"brr"`
+}
+
+func (ptrs PrivateTechResearchStatus) Useful() bool {
+	return ptrs.Sv > 0 || ptrs.Research > 0 || ptrs.Bv > 0 || ptrs.CostPerTechLevel > 0
 }
 
 type TechResearchStatus struct {
@@ -94,6 +102,10 @@ type PrivatePlayer struct {
 	Cash            int            `json:"cash"`
 	ResearchingNext string         `json:"researching_next"`
 	CountdownToWar  map[string]int `json:"countdown_to_war"`
+}
+
+func (pp PrivatePlayer) Useful() bool {
+	return pp.Researching != "" || (pp.War != nil && len(pp.War) > 0) || pp.StarsAbandoned > 0 || pp.Cash > 0 || pp.ResearchingNext != "" || (pp.CountdownToWar != nil && len(pp.CountdownToWar) > 0)
 }
 
 type Player struct {

@@ -68,7 +68,7 @@ export default class GalaxyMap extends Vue {
 
     const data = Object.values(this.data.scanning_data!.stars).map((star): Node => ({
       id: `star-${star.uid}`,
-      label: `${star.n}\n${star.st === undefined ? '?' : star.st}`,
+      label: `${star.n}\n${star.v === '1' ? star.st : '?'}`,
       group: `${star.puid}`,
       fixed: { x: true, y: true },
       x: parseFloat(star.x) * this.scale,
