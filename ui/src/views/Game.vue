@@ -79,7 +79,7 @@ export default class Game extends Vue {
   }
 
   public async mounted() {
-    this.interval = setInterval(() => this.loadData(), 5 * 60 * 1000);
+    this.interval = setInterval(() => this.loadDataNoWipe(), 5 * 60 * 1000);
     this.setAccessCodeFromRoute();
     await this.loadData();
   }
@@ -103,6 +103,22 @@ export default class Game extends Vue {
   @Watch('gameNumber')
   public async loadData() {
     this.data = null;
+    await this.loadDataNoWipe();
+    try {
+      const resp = await fetch(`/api/matches/${this.gameNumber}/merged-snapshot?access_code=${this.accessCode}`);
+      this.requiresAuth = resp.status === 401;
+      if (!resp.ok) {
+        throw new Error(await resp.text());
+      }
+      const json = await resp.json();
+      this.data = json as APIResponse;
+    } catch (ex) {
+      console.error(ex);
+      this.error = ex;
+    }
+  }
+
+  private async loadDataNoWipe() {
     this.error = null;
     try {
       const resp = await fetch(`/api/matches/${this.gameNumber}/merged-snapshot?access_code=${this.accessCode}`);
