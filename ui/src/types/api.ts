@@ -89,6 +89,17 @@ export interface PrivatePlayer {
 
 export type Player = PublicPlayer & Partial<PrivatePlayer>;
 
+export const isPrivatePlayer = (
+  player: Player,
+): player is PublicPlayer&PrivatePlayer => true
+  && player.researching !== undefined
+  && player.war !== undefined
+  && player.stars_abandoned !== undefined
+  && player.cash !== undefined
+  && player.researching_next !== undefined
+  && player.countdown_to_war !== undefined
+  && player.researching !== '';
+
 export interface ScanningData {
   fleets: { [key: string]: Fleet };
   fleet_speed: number;
