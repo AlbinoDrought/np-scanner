@@ -177,6 +177,7 @@ export default class GameStatus extends Vue {
     return ({
       scanning: 'Scanning',
       terraforming: 'Terraforming',
+      propulsion: 'Hyperspace Range',
       research: 'Experimentation',
       weapons: 'Weapons',
       banking: 'Banking',
