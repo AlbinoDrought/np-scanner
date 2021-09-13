@@ -2,6 +2,7 @@
   <div class="game">
     <div class="details" v-if="data">
       <galaxy-map :data="data" />
+      <game-status :data="data" />
     </div>
     <div class="form-wrapper" v-else-if="requiresAuth">
       <form class="form" @submit.prevent="tryCode">
@@ -20,11 +21,13 @@ import {
   Component, Vue, Prop, Watch,
 } from 'vue-property-decorator';
 import GalaxyMap from '@/components/GalaxyMap.vue';
+import GameStatus from '@/components/GameStatus.vue';
 import { APIResponse } from '@/types/api';
 
 @Component({
   components: {
     GalaxyMap,
+    GameStatus,
   },
   metaInfo() {
     const me = this as any;
