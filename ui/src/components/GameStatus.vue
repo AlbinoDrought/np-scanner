@@ -18,9 +18,64 @@
         ({{ lastUpdatedString }})
       </p>
 
+      <p
+        class="threats"
+        :class="{
+          'threats--okay': majorThreatCount === 0,
+          'threats--danger': majorThreatCount > 0,
+        }">
+        Threats: {{ privateFleetThreats.length }}
+      </p>
+
       <template v-if="moreInfo">
+        <p
+          v-for="(threat, i) in privateFleetThreats"
+          :key="`threat-${i}`"
+          class="threat"
+          :class="{
+            'threat--minor': threat.battleResults.defenderWins,
+            'threat--major': threat.battleResults.attackerWins,
+          }"
+        >
+          <span>
+            <strong>{{ threat.fleetOwner.alias }}</strong>
+            vs
+            <strong>{{ threat.targetStarOwner.alias }}</strong>
+          </span>
+          <span>
+            Fleet
+            <strong>{{ threat.fleet.n }}</strong>
+            headed to
+            <strong>{{ threat.targetStar.n }}</strong>
+          </span>
+          <span>
+            Attacker
+            <strong>{{ threat.fleet.st }}</strong>
+            vs Defender
+            <strong>{{ threat.targetStarTrueStrength }}</strong>
+          </span>
+          <span v-if="threat.battleResults.defenderWins" class="result">
+            Defender wins with
+            <strong>{{ threat.battleResults.defenderShipsRemaining }}</strong>
+            ships left :)
+          </span>
+          <span v-else-if="threat.battleResults.attackerWins" class="result">
+            Attacker wins with
+            <strong>{{ threat.battleResults.attackerShipsRemaining }}</strong>
+            ships left :(
+            <br>
+            Defender needs
+            <strong>{{ threat.battleResults.defenderShipsNeeded }}</strong>
+            more ships to win
+          </span>
+        </p>
+
         <h2>Loaded Players</h2>
-        <p v-for="player in privatePlayers" :key="player.uid" class="player player--private">
+        <p
+          v-for="player in privatePlayers"
+          :key="`private-player-${player.uid}`"
+          class="player player--private"
+        >
           <span>
             <strong>{{ player.alias }}</strong>
             <span>
@@ -37,7 +92,11 @@
         </p>
 
         <h2>Other Players</h2>
-        <p v-for="player in publicPlayers" :key="player.uid" class="player player--public">
+        <p
+          v-for="player in publicPlayers"
+          :key="`public-player-${player.uid}`"
+          class="player player--public"
+        >
           <span>
             <strong>{{ player.alias }}</strong>
             <span>
@@ -71,11 +130,14 @@ import {
 
 import {
   APIResponse,
+  Fleet,
   isPrivatePlayer,
+  Player,
   PrivatePlayer,
   PrivateTechResearchStatus,
   PublicPlayer,
   PublicTechResearchStatus,
+  Star,
 } from '@/types/api';
 
 const forceGrabTechState = (
@@ -179,7 +241,7 @@ export default class GameStatus extends Vue {
     return strengths;
   }
 
-  private get visibleAndHiddenFleets() {
+  public get visibleAndHiddenFleets() {
     const visibleFleets = new Map<number, number>();
 
     Object.values(this.data.scanning_data!.fleets).forEach((fleet) => {
@@ -196,6 +258,100 @@ export default class GameStatus extends Vue {
     });
 
     return fleets;
+  }
+
+  private get trueStarStrengths() {
+    // map of docked star strength + hovering fleet strength
+    const trueStarStrengths = new Map<number, number>();
+
+    Object.values(this.data.scanning_data!.stars).forEach((star) => {
+      trueStarStrengths.set(star.uid, star.st || 0);
+    });
+
+    Object.values(this.data.scanning_data!.fleets).forEach((fleet) => {
+      if (!fleet.ouid) {
+        return;
+      }
+
+      trueStarStrengths.set(fleet.ouid, (trueStarStrengths.get(fleet.ouid) || 0) + fleet.st);
+    });
+
+    return trueStarStrengths;
+  }
+
+  public get fleetThreats() {
+    const fleetThreats: {
+      fleet: Fleet,
+      order: number[],
+      fleetOwnerID: number,
+      fleetOwner: Player,
+      targetStarID: number,
+      targetStar: Star,
+      targetStarTrueStrength: number,
+      targetStarOwner: Player,
+      battleResults: {
+          attackerWins: boolean;
+          defenderWins: boolean;
+          attackerShipsRemaining: number;
+          defenderShipsRemaining: number;
+          lowestTicks: number;
+          defenderShipsNeeded: number;
+      },
+    }[] = [];
+
+    Object.values(this.data.scanning_data!.fleets).forEach((fleet) => {
+      const fleetOwnerID = fleet.puid;
+      const fleetOwner = this.data.scanning_data!.players[fleetOwnerID]!;
+
+      fleet.o.forEach((order) => {
+        const targetStarID = order[1];
+        const targetStar = this.data.scanning_data!.stars[`${targetStarID}`];
+        if (!targetStar) {
+          return;
+        }
+
+        if (targetStar.puid !== -1 && targetStar.puid !== fleetOwnerID) {
+          const targetStarOwner = this.data.scanning_data!.players[targetStar.puid]!;
+
+          fleetThreats.push({
+            fleet,
+            order,
+            fleetOwnerID,
+            fleetOwner,
+            targetStarID,
+            targetStar,
+            targetStarTrueStrength: this.trueStarStrengths.get(targetStarID) || targetStar.st || 0,
+            targetStarOwner,
+            battleResults: this.guessBattle(
+              fleet.st,
+              fleetOwner.tech.weapons.level,
+              this.trueStarStrengths.get(targetStarID) || 0,
+              targetStarOwner.tech.weapons.level,
+            ),
+          });
+        }
+      });
+    });
+
+    return fleetThreats;
+  }
+
+  public get privateFleetThreats() {
+    const privatePlayerIDs = new Set<number>();
+
+    this.privatePlayers.forEach((player) => {
+      privatePlayerIDs.add(player.uid);
+    });
+
+    return this.fleetThreats.filter((threat) => privatePlayerIDs.has(threat.targetStar.puid));
+  }
+
+  public get majorThreatCount() {
+    return this.privateFleetThreats.filter((t) => t.battleResults.attackerWins).length;
+  }
+
+  public get minorThreatCount() {
+    return this.privateFleetThreats.filter((t) => t.battleResults.defenderWins).length;
   }
 
   public niceTechName(tech: string) {
@@ -267,6 +423,58 @@ export default class GameStatus extends Vue {
     ].join('');
   }
 
+  private guessBattle(
+    attackerShips: number,
+    attackerWeaponsLevel: number,
+    defenderShips: number,
+    defenderWeaponsLevel: number,
+  ) {
+    const defenderWeaponsLevelWithBonus = defenderWeaponsLevel + 1; // defenders bonus
+
+    const ticksToKillAttacker = attackerShips / defenderWeaponsLevelWithBonus; // 14.75
+    const ticksToKillDefender = defenderShips / attackerWeaponsLevel; // 0
+
+    const lowestTicks = Math.ceil(Math.min(ticksToKillAttacker, ticksToKillDefender)); // 0
+
+    const attackerShipsRemaining = Math.max(
+      0,
+      attackerShips - (lowestTicks * defenderWeaponsLevelWithBonus), // 59
+    );
+    let defenderShipsRemaining = Math.max(
+      0,
+      defenderShips - (lowestTicks * attackerWeaponsLevel), // 0
+    );
+
+    if (attackerShipsRemaining === 0 && defenderShipsRemaining === 0) {
+      // defender wins
+      defenderShipsRemaining += attackerWeaponsLevel;
+    }
+
+    const attackerWins = attackerShipsRemaining > 0;
+    const defenderWins = defenderShipsRemaining > 0;
+
+    if (attackerWins === defenderWins) {
+      throw new Error('encountered draw but this should be impossible');
+    }
+
+    // the rounding could be incorrect, not 100% sure
+    const defenderShipsNeeded = Math.floor(Math.max(
+      0,
+      (ticksToKillAttacker * attackerWeaponsLevel) - defenderShips,
+    ));
+
+    return {
+      attackerWins,
+      defenderWins,
+
+      attackerShipsRemaining,
+      defenderShipsRemaining,
+
+      lowestTicks,
+      defenderShipsNeeded,
+    };
+  }
+
   /*
   private nextResearchText(player: PublicPlayer&PrivatePlayer) {
     const tech = forceGrabTechState(player, player.researching_next);
@@ -321,9 +529,27 @@ export default class GameStatus extends Vue {
       margin-top: 1em;
     }
 
-    .player {
+    .player, .threat {
       display: flex;
       flex-direction: column;
+    }
+
+    .threats {
+      &.threats--danger {
+        color: red;
+        font-size: larger;
+        font-weight: bold;
+        animation: blink 1s ease-in-out infinite;
+      }
+    }
+
+    .threat {
+      &.threat--minor .result {
+        color: lime;
+      }
+      &.threat--major .result {
+        color: red;
+      }
     }
   }
 }
