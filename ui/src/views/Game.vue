@@ -2,7 +2,7 @@
   <div class="game">
     <div class="details" v-if="data">
       <galaxy-map :data="data" />
-      <game-status :data="data" />
+      <game-status :gameNumber="gameNumber" :data="data" />
     </div>
     <div class="form-wrapper" v-else-if="requiresAuth">
       <form class="form" @submit.prevent="tryCode">

@@ -2,21 +2,25 @@
   <div class="game-status">
     <div class="panel">
       <div class="menu">
-        <h1>{{ title }}</h1>
+        <h1>
+          <a :href="`https://np.ironhelmet.com/game/${gameNumber}`" target="_blank">
+            {{ title }}
+          </a>
+        </h1>
         <a href="#" @click.prevent="moreInfo = !moreInfo">
-          Toggle
+          Toggle Info
         </a>
       </div>
 
-      <template v-if="moreInfo">
-        <p>
-          Last Updated: {{ lastUpdatedRelativeString }}
-          <br>
-          ({{ lastUpdatedString }})
-        </p>
+      <p>
+        Last Updated: {{ lastUpdatedRelativeString }}
+        <br>
+        ({{ lastUpdatedString }})
+      </p>
 
+      <template v-if="moreInfo">
         <h2>Loaded Players</h2>
-        <p v-for="player in privatePlayers" :key="player.uid" class="player">
+        <p v-for="player in privatePlayers" :key="player.uid" class="player player--private">
           <span>
             <strong>{{ player.alias }}</strong>
             <span>
@@ -27,7 +31,27 @@
               {{ player.total_science }})
             </span>
           </span>
+          <span>Total Ships: {{ player.total_strength }}</span>
           <span>{{ currentResearchText(player) }}</span>
+        </p>
+
+        <h2>Other Players</h2>
+        <p v-for="player in publicPlayers" :key="player.uid" class="player player--public">
+          <span>
+            <strong>{{ player.alias }}</strong>
+            <span>
+              ({{ player.total_economy }}
+              |
+              {{ player.total_industry }}
+              |
+              {{ player.total_science }})
+            </span>
+          </span>
+          <span>
+            Total Ships: {{ player.total_strength }},
+            Visible: {{ visibleAndHiddenStrength[player.uid].visible }},
+            Hidden: {{ visibleAndHiddenStrength[player.uid].hidden }}
+          </span>
         </p>
       </template>
     </div>
@@ -58,6 +82,8 @@ const forceGrabTechState = (
 
 @Component({})
 export default class GameStatus extends Vue {
+  @Prop() private gameNumber!: number;
+
   @Prop() private data!: APIResponse;
 
   public moreInfo = false;
@@ -93,6 +119,58 @@ export default class GameStatus extends Vue {
     });
 
     return privatePlayers;
+  }
+
+  public get publicPlayers(): Array<PublicPlayer> {
+    const publicPlayers: Array<PublicPlayer> = [];
+
+    const privatePlayerIDs = new Set<number>();
+
+    this.privatePlayers.forEach((player) => {
+      privatePlayerIDs.add(player.uid);
+    });
+
+    return Object.values(this.data.scanning_data!.players)
+      .filter((p) => !privatePlayerIDs.has(p.uid));
+  }
+
+  private get visibleStrength(): Map<number, number> {
+    const visibleStrength = new Map<number, number>();
+
+    Object.values(this.data.scanning_data!.players).forEach((player) => {
+      visibleStrength.set(player.uid, 0);
+    });
+
+    Object.values(this.data.scanning_data!.fleets).forEach((fleet) => {
+      let currentStrength = visibleStrength.get(fleet.puid) || 0;
+      currentStrength += fleet.st;
+      visibleStrength.set(fleet.puid, currentStrength);
+    });
+
+    Object.values(this.data.scanning_data!.stars).forEach((star) => {
+      if (!star.st) {
+        return;
+      }
+
+      let currentStrength = visibleStrength.get(star.puid) || 0;
+      currentStrength += star.st;
+      visibleStrength.set(star.puid, currentStrength);
+    });
+
+    return visibleStrength;
+  }
+
+  public get visibleAndHiddenStrength() {
+    const { visibleStrength } = this;
+    const strengths: { [key: number]: { visible: number, hidden: number } } = {};
+
+    Object.values(this.data.scanning_data!.players).forEach((player) => {
+      const visible = visibleStrength.get(player.uid) || 0;
+      const hidden = player.total_strength - visible;
+      strengths[player.uid] = { visible, hidden };
+    });
+
+    return strengths;
   }
 
   public niceTechName(tech: string) {
@@ -188,7 +266,9 @@ export default class GameStatus extends Vue {
   position: fixed;
   top: 0;
   left: 0;
-  margin: 1em;
+  margin: 1vh;
+  max-height: 98vh;
+  overflow-y: auto;
 
   .panel {
     padding: 1em;
@@ -203,7 +283,7 @@ export default class GameStatus extends Vue {
       align-items: center;
       justify-content: space-between;
 
-      a {
+      &>a {
         margin-left: 1em;
       }
     }
