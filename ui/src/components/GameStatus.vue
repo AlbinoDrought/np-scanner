@@ -174,14 +174,14 @@ export default class GameStatus extends Vue {
   }
 
   public niceTechName(tech: string) {
-    return {
+    return ({
       scanning: 'Scanning',
       terraforming: 'Terraforming',
       research: 'Experimentation',
       weapons: 'Weapons',
       banking: 'Banking',
       manufacturing: 'Manufacturing',
-    }[tech] || tech;
+    } as any)[tech] || tech;
   }
 
   private techProgress(
@@ -290,6 +290,9 @@ export default class GameStatus extends Vue {
 
     h1, h2 {
       margin: 0;
+    }
+    h2 {
+      margin-top: 1em;
     }
 
     .player {
