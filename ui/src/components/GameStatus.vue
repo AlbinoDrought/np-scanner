@@ -32,6 +32,7 @@
             </span>
           </span>
           <span>Total Ships: {{ player.total_strength }}</span>
+          <span>Total Carriers: {{ player.total_fleets }}</span>
           <span>{{ currentResearchText(player) }}</span>
         </p>
 
@@ -51,6 +52,11 @@
             Total Ships: {{ player.total_strength }},
             Visible: {{ visibleAndHiddenStrength[player.uid].visible }},
             Hidden: {{ visibleAndHiddenStrength[player.uid].hidden }}
+          </span>
+          <span>
+            Total Carriers: {{ player.total_fleets }},
+            Visible: {{ visibleAndHiddenFleets[player.uid].visible }},
+            Hidden: {{ visibleAndHiddenFleets[player.uid].hidden }}
           </span>
         </p>
       </template>
@@ -171,6 +177,25 @@ export default class GameStatus extends Vue {
     });
 
     return strengths;
+  }
+
+  private get visibleAndHiddenFleets() {
+    const visibleFleets = new Map<number, number>();
+
+    Object.values(this.data.scanning_data!.fleets).forEach((fleet) => {
+      const current = visibleFleets.get(fleet.puid) || 0;
+      visibleFleets.set(fleet.puid, current + 1);
+    });
+
+    const fleets: { [key: number]: { visible: number, hidden: number } } = {};
+
+    Object.values(this.data.scanning_data!.players).forEach((player) => {
+      const visible = visibleFleets.get(player.uid) || 0;
+      const hidden = player.total_fleets - visible;
+      fleets[player.uid] = { visible, hidden };
+    });
+
+    return fleets;
   }
 
   public niceTechName(tech: string) {
