@@ -86,6 +86,7 @@
               {{ player.total_science }})
             </span>
           </span>
+          <span>Weapons Level {{ player.tech.weapons.level }}</span>
           <span>Total Ships: {{ player.total_strength }}</span>
           <span>Total Carriers: {{ player.total_fleets }}</span>
           <span>{{ currentResearchText(player) }}</span>
@@ -107,6 +108,7 @@
               {{ player.total_science }})
             </span>
           </span>
+          <span>Weapons Level {{ player.tech.weapons.level }}</span>
           <span>
             Total Ships: {{ player.total_strength }},
             Visible: {{ visibleAndHiddenStrength[player.uid].visible }},
