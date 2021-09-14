@@ -107,18 +107,6 @@ export default class Game extends Vue {
   public async loadData() {
     this.data = null;
     await this.loadDataNoWipe();
-    try {
-      const resp = await fetch(`/api/matches/${this.gameNumber}/merged-snapshot?access_code=${this.accessCode}`);
-      this.requiresAuth = resp.status === 401;
-      if (!resp.ok) {
-        throw new Error(await resp.text());
-      }
-      const json = await resp.json();
-      this.data = json as APIResponse;
-    } catch (ex) {
-      console.error(ex);
-      this.error = ex;
-    }
   }
 
   private async loadDataNoWipe() {
