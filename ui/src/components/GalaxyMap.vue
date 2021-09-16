@@ -10,7 +10,7 @@ import {
 } from 'vue-property-decorator';
 import { Network, Node, Edge } from 'vis-network';
 
-import { APIResponse } from '@/types/api';
+import { APIResponse, Fleet, Star } from '@/types/api';
 
 const colorBase = [
   'rgba(0, 0, 255, 1)',
@@ -107,9 +107,17 @@ for (let i = -1; i < 64; i += 1) {
 export default class GalaxyMap extends Vue {
   @Prop() private data!: APIResponse;
 
+  @Prop()
+  public selectedStar: Star|null = null;
+
+  @Prop()
+  public selectedFleet: Fleet|null = null;
+
   private lastChart: Network|null = null;
 
   private scale = 1000;
+
+  private skipFocus = false;
 
   @Watch('data', { immediate: true })
   private renderMap(canRetry = true) {
@@ -216,7 +224,62 @@ export default class GalaxyMap extends Vue {
         groups,
       },
     );
+    this.lastChart.on('selectNode', (event: { nodes?: string[] }) => {
+      if (!event.nodes || event.nodes.length !== 1) {
+        return;
+      }
+
+      const parts = `${event.nodes[0]}`.split('-');
+      const type = parts[0];
+      const id = parts[1];
+      if (type === 'star') {
+        const star = this.data.scanning_data!.stars[id];
+        if (star) {
+          this.skipFocus = true; // don't focus clicked nodes
+          this.$emit('selectStar', star);
+        }
+      } else if (type === 'fleet') {
+        const fleet = this.data.scanning_data!.fleets[id];
+        if (fleet) {
+          this.skipFocus = true;
+          this.$emit('selectFleet', fleet);
+        }
+      }
+    });
     this.hackAroundNetworkChartSizeIssues();
+  }
+
+  @Watch('selectedStar')
+  private selectStar() {
+    if (this.skipFocus) {
+      this.skipFocus = false;
+      return;
+    }
+
+    if (!this.lastChart || !this.selectedStar) {
+      return;
+    }
+
+    this.lastChart.selectNodes([`star-${this.selectedStar.uid}`]);
+    this.lastChart.fit({ nodes: [`star-${this.selectedStar.uid}`] });
+    this.lastChart.focus(`star-${this.selectedStar.uid}`);
+  }
+
+  @Watch('selectedFleet')
+  private selectFleet() {
+    console.log(this.selectedFleet);
+    if (this.skipFocus) {
+      this.skipFocus = false;
+      return;
+    }
+
+    if (!this.lastChart || !this.selectedFleet) {
+      return;
+    }
+
+    this.lastChart.selectNodes([`fleet-${this.selectedFleet.uid}`]);
+    this.lastChart.fit({ nodes: [`fleet-${this.selectedFleet.uid}`] });
+    this.lastChart.focus(`fleet-${this.selectedFleet.uid}`);
   }
 
   private hackAroundNetworkChartSizeIssues() {

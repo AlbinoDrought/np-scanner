@@ -44,9 +44,17 @@
           </span>
           <span>
             Fleet
-            <strong>{{ threat.fleet.n }}</strong>
+            <strong>
+              <a href="#" @click.prevent="$emit('selectFleet', threat.fleet)">
+                {{ threat.fleet.n }}
+              </a>
+            </strong>
             headed to
-            <strong>{{ threat.targetStar.n }}</strong>
+            <strong>
+              <a href="#" @click.prevent="$emit('selectStar', threat.targetStar)">
+                {{ threat.targetStar.n }}
+              </a>
+            </strong>
           </span>
           <span>
             Attacker

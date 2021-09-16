@@ -1,8 +1,21 @@
 <template>
   <div class="game">
     <div class="details" v-if="data">
-      <galaxy-map :data="data" />
-      <game-status :gameNumber="gameNumber" :data="data" />
+      <galaxy-map
+        :data="data"
+        :selectedStar="selectedStar"
+        @selectStar="v => selectedStar = v"
+        :selectedFleet="selectedFleet"
+        @selectFleet="v => selectedFleet = v"
+      />
+      <game-status
+        :gameNumber="gameNumber"
+        :data="data"
+        :selectedStar="selectedStar"
+        @selectStar="v => selectedStar = v"
+        :selectedFleet="selectedFleet"
+        @selectFleet="v => selectedFleet = v"
+      />
     </div>
     <div class="form-wrapper" v-else-if="requiresAuth">
       <form class="form" @submit.prevent="tryCode">
@@ -22,7 +35,7 @@ import {
 } from 'vue-property-decorator';
 import GalaxyMap from '@/components/GalaxyMap.vue';
 import GameStatus from '@/components/GameStatus.vue';
-import { APIResponse } from '@/types/api';
+import { APIResponse, Fleet, Star } from '@/types/api';
 
 @Component({
   components: {
@@ -57,6 +70,10 @@ export default class Game extends Vue {
   private error: Error|null = null;
 
   private interval: number|null = null;
+
+  private selectedStar: Star|null = null;
+
+  private selectedFleet: Fleet|null = null;
 
   public async tryCode() {
     this.submitText = 'Trying code...';
