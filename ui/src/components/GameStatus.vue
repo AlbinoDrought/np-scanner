@@ -38,9 +38,27 @@
           }"
         >
           <span>
-            <strong>{{ threat.fleetOwner.alias }}</strong>
+            <strong>
+              <a
+                href="#"
+                @click.prevent="$emit(
+                  'selectStar',
+                  data.scanning_data.stars[threat.fleetOwner.huid],
+                )"
+                v-text="threat.fleetOwner.alias"
+              />
+            </strong>
             vs
-            <strong>{{ threat.targetStarOwner.alias }}</strong>
+            <strong>
+              <a
+                href="#"
+                @click.prevent="$emit(
+                  'selectStar',
+                  data.scanning_data.stars[threat.targetStarOwner.huid],
+                )"
+                v-text="threat.targetStarOwner.alias"
+              />
+            </strong>
           </span>
           <span>
             Fleet
@@ -85,7 +103,13 @@
           class="player player--private"
         >
           <span>
-            <strong>{{ player.alias }}</strong>
+            <strong>
+              <a
+                href="#"
+                @click.prevent="$emit('selectStar', data.scanning_data.stars[player.huid])"
+                v-text="player.alias"
+              />
+            </strong>
             <span>
               ({{ player.total_economy }}
               |
@@ -107,7 +131,13 @@
           class="player player--public"
         >
           <span>
-            <strong>{{ player.alias }}</strong>
+            <strong>
+              <a
+                href="#"
+                @click.prevent="$emit('selectStar', data.scanning_data.stars[player.huid])"
+                v-text="player.alias"
+              />
+            </strong>
             <span>
               ({{ player.total_economy }}
               |
