@@ -172,14 +172,20 @@ export default class GalaxyMap extends Vue {
 
       if (star.v === '1') {
         const powerAtStar = (star.st || 0) + fleetPowerDockedAtStar;
-        let powerLine = `${powerAtStar}`;
-        if ((star.c || 0) > 0) {
-          const newPowerPerTick = (star.c || 0.0).toFixed(2);
-          powerLine += ` (+${newPowerPerTick}/t)`;
-        }
         const econ = star.e || 0;
         const industry = star.i || 0;
         const science = star.s || 0;
+
+        let powerLine = `${powerAtStar}`;
+        if (industry > 0) {
+          const player = this.data.scanning_data!.players[star.puid];
+          if (player) {
+            const newPowerPerDay = industry * (player.tech.manufacturing.value + 5);
+            const newPowerPerTick = newPowerPerDay / this.data.scanning_data!.production_rate;
+            powerLine += ` (+${newPowerPerTick.toFixed(2)}/t)`;
+          }
+        }
+
         altText = [
           powerLine,
           `(${econ} | ${industry} | ${science})`,
