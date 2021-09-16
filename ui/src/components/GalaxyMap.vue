@@ -108,10 +108,10 @@ export default class GalaxyMap extends Vue {
   @Prop() private data!: APIResponse;
 
   @Prop()
-  public selectedStar: Star|null = null;
+  public selectedStar!: Star|null;
 
   @Prop()
-  public selectedFleet: Fleet|null = null;
+  public selectedFleet!: Fleet|null;
 
   private lastChart: Network|null = null;
 
@@ -267,7 +267,6 @@ export default class GalaxyMap extends Vue {
 
   @Watch('selectedFleet')
   private selectFleet() {
-    console.log(this.selectedFleet);
     if (this.skipFocus) {
       this.skipFocus = false;
       return;
