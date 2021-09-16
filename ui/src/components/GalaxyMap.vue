@@ -168,10 +168,26 @@ export default class GalaxyMap extends Vue {
 
     Object.values(this.data.scanning_data!.stars).forEach((star) => {
       const fleetPowerDockedAtStar = fleetPowerDockedAtStars.get(star.uid) || 0;
-      const powerAtStar = (star.st || 0) + fleetPowerDockedAtStar;
+      let altText = '?';
+
+      if (star.v === '1') {
+        const powerAtStar = (star.st || 0) + fleetPowerDockedAtStar;
+        let powerLine = `${powerAtStar}`;
+        if ((star.c || 0) > 0) {
+          const newPowerPerTick = (star.c || 0.0).toFixed(2);
+          powerLine += ` (+${newPowerPerTick}/t)`;
+        }
+        const econ = star.e || 0;
+        const industry = star.i || 0;
+        const science = star.s || 0;
+        altText = [
+          powerLine,
+          `(${econ} | ${industry} | ${science})`,
+        ].join('\n');
+      }
       data.push({
         id: `star-${star.uid}`,
-        label: `${star.n}\n${star.v === '1' ? powerAtStar : '?'}`,
+        label: `${star.n}\n${altText}`,
         group: `${star.puid}-stars`,
         x: parseFloat(star.x) * this.scale,
         y: parseFloat(star.y) * this.scale,
