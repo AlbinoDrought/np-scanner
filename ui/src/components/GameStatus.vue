@@ -80,6 +80,9 @@
             vs Defender
             <strong>{{ threat.targetStarTrueStrength }}</strong>
           </span>
+          <!--
+          <span>({{ threat.travelTime }})</span>
+          -->
           <span v-if="threat.battleResults.defenderWins" class="result">
             Defender wins with
             <strong>{{ threat.battleResults.defenderShipsRemaining }}</strong>
@@ -329,6 +332,13 @@ export default class GameStatus extends Vue {
       targetStar: Star,
       targetStarTrueStrength: number,
       targetStarOwner: Player,
+      /*
+      distance: number,
+      distanceLY: number,
+      fleetSpeed: number,
+      travelTicks: number,
+      travelTime: string,
+      */
       battleResults: {
           attackerWins: boolean;
           defenderWins: boolean;
@@ -353,6 +363,33 @@ export default class GameStatus extends Vue {
         if (targetStar.puid !== -1 && targetStar.puid !== fleetOwnerID) {
           const targetStarOwner = this.data.scanning_data!.players[targetStar.puid]!;
 
+          /*
+          const distanceX = Math.abs(parseFloat(targetStar.x) - parseFloat(fleet.x));
+          const distanceY = Math.abs(parseFloat(targetStar.y) - parseFloat(fleet.y));
+          const distance = Math.sqrt(
+            (distanceX * distanceX) * (distanceY * distanceY),
+          );
+          const distanceLY = distance * 8;
+
+          let fleetSpeed = this.data.scanning_data!.fleet_speed;
+          if (fleet.w) {
+            fleetSpeed *= 3;
+          }
+
+          const travelTicks = distanceLY / fleetSpeed; // todo: this is wrong
+          console.log(
+            targetStar.x,
+            fleet.x,
+            Math.abs(parseFloat(targetStar.x) - parseFloat(fleet.x)),
+          );
+          console.log(
+            targetStar.y,
+            fleet.y,
+            Math.abs(parseFloat(targetStar.y) - parseFloat(fleet.y)),
+          );
+          console.log(distance, distanceLY, fleetSpeed, travelTicks);
+          */
+
           fleetThreats.push({
             fleet,
             order,
@@ -362,6 +399,13 @@ export default class GameStatus extends Vue {
             targetStar,
             targetStarTrueStrength: this.trueStarStrengths.get(targetStarID) || targetStar.st || 0,
             targetStarOwner,
+            /*
+            distance,
+            distanceLY,
+            fleetSpeed,
+            travelTicks,
+            travelTime: this.adjustedTicksToTime(travelTicks),
+            */
             battleResults: this.guessBattle(
               fleet.st,
               fleetOwner.tech.weapons.level,
@@ -420,31 +464,35 @@ export default class GameStatus extends Vue {
     status: PublicTechResearchStatus&PrivateTechResearchStatus,
     targetLevel: number,
   ) {
-    const amountNeeded = 144 * (targetLevel - 1);
+    if (player.total_science <= 0) {
+      return 'stalled (user has no science)';
+    }
 
+    const amountNeeded = 144 * (targetLevel - 1);
     const ticksNeeded = Math.ceil((amountNeeded - status.research) / player.total_science);
-    const adjustedTicksNeeded = ticksNeeded - this.data.scanning_data!.tick_fragment;
-    const ticksAsMinutes = Math.ceil(adjustedTicksNeeded * this.data.scanning_data!.tick_rate);
+    return `${ticksNeeded} ticks (${this.adjustedTicksToTime(ticksNeeded)})`;
+  }
+
+  private adjustedTicksToTime(unadjustedTicks: number): string {
+    const adjustedTicks = Math.max(0, unadjustedTicks - this.data.scanning_data!.tick_fragment);
+    return this.ticksToTime(adjustedTicks);
+  }
+
+  private ticksToTime(ticks: number): string {
+    const ticksAsMinutes = Math.ceil(ticks * this.data.scanning_data!.tick_rate);
 
     let minutesRemaining = ticksAsMinutes;
-    let days = 0;
-    let hours = 0;
-    let minutes = 0;
 
-    while (minutesRemaining >= (60 * 24)) {
-      minutesRemaining -= 60 * 24;
-      days += 1;
-    }
+    const days = Math.floor(minutesRemaining / (60 * 24));
+    minutesRemaining -= days * (60 * 24);
 
-    while (minutesRemaining >= 60) {
-      minutesRemaining -= 60;
-      hours += 1;
-    }
+    const hours = Math.floor(minutesRemaining / 60);
+    minutesRemaining -= hours * 60;
 
-    minutes = minutesRemaining;
+    const minutes = Math.ceil(minutesRemaining);
     minutesRemaining = 0;
 
-    return `${ticksNeeded} ticks (~${days}d${hours}h${minutes}m)`;
+    return `~${days}d${hours}h${minutes}m`;
   }
 
   private currentResearchText(player: PublicPlayer&PrivatePlayer) {
