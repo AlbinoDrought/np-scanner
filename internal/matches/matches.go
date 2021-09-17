@@ -10,8 +10,8 @@ type Match struct {
 	GameNumber  string              `json:"game_number"`
 	Name        string              `json:"name"`
 	LastPoll    time.Time           `json:"last_poll"`
-	PlayerCreds map[int]PlayerCreds `json:"player_creds"`
-	AccessCode  []byte              `json:"access_code"`
+	PlayerCreds map[int]PlayerCreds `json:"player_creds,omitempty"`
+	AccessCode  []byte              `json:"access_code,omitempty"`
 }
 
 func (match *Match) HasAccessCode() bool {
@@ -34,7 +34,7 @@ func (match *Match) CheckAccessCode(plaintext []byte) error {
 type PlayerCreds struct {
 	PlayerUID      int       `json:"player_uid"`
 	PlayerAlias    string    `json:"player_alias"`
-	APIKey         string    `json:"api_key"`
+	APIKey         string    `json:"api_key,omitempty"`
 	LastPoll       time.Time `json:"last_poll"`
 	LatestSnapshot int64     `json:"latest_snapshot"`
 }

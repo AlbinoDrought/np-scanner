@@ -15,6 +15,7 @@ var ErrSnapshotNotFound = errors.New("snapshot not found")
 
 type MatchStore interface {
 	Matches() ([]string, error)
+	EachMatch(decode bool, callback func(gameNumber string, match *matches.Match)) error
 	SaveMatch(match *matches.Match) error
 	FindMatchOrFail(gameNumber string) (*matches.Match, error)
 	FindOrCreateMatch(gameNumber string) (*matches.Match, error)
@@ -52,17 +53,30 @@ type boltMatchStore struct {
 	db *bolt.DB
 }
 
-func (store *boltMatchStore) Matches() ([]string, error) {
-	gameNumbers := []string{}
-
-	err := store.db.View(func(tx *bolt.Tx) error {
+func (store *boltMatchStore) EachMatch(decode bool, callback func(gameNumber string, match *matches.Match)) error {
+	return store.db.View(func(tx *bolt.Tx) error {
+		match := &matches.Match{}
 		c := tx.Bucket([]byte("matches")).Cursor()
 
-		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			gameNumbers = append(gameNumbers, string(k))
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			if decode {
+				err := json.Unmarshal(v, match)
+				if err != nil {
+					return err
+				}
+			}
+			callback(string(k), match)
 		}
 
 		return nil
+	})
+}
+
+func (store *boltMatchStore) Matches() ([]string, error) {
+	gameNumbers := []string{}
+
+	err := store.EachMatch(false, func(gameNumber string, match *matches.Match) {
+		gameNumbers = append(gameNumbers, gameNumber)
 	})
 
 	if err != nil {

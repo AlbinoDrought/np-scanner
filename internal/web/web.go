@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -107,6 +108,30 @@ func (ws *webServer) Poll(period time.Duration) {
 	}
 }
 
+func (ws *webServer) IndexMatch(w http.ResponseWriter, r *http.Request) {
+	allMatches := []matches.Match{}
+
+	err := ws.db.EachMatch(true, func(gameNumber string, match *matches.Match) {
+		match.AccessCode = nil
+		match.PlayerCreds = nil
+		allMatches = append(allMatches, *match)
+	})
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal server error"))
+		log.Printf("Error indexing matches: %v", err)
+		return
+	}
+
+	sort.Slice(allMatches, func(i, j int) bool {
+		return strings.Compare(allMatches[i].Name, allMatches[j].Name) == -1
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(allMatches)
+}
+
 func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	gameNumber := vars["gameNumber"]
@@ -123,6 +148,7 @@ func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	match.AccessCode = nil
 	for i, creds := range match.PlayerCreds {
 		creds.APIKey = ""
 		match.PlayerCreds[i] = creds
@@ -188,6 +214,7 @@ func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) 
 func (ws *webServer) Router() *mux.Router {
 	r := mux.NewRouter()
 
+	r.HandleFunc("/api/matches", ws.IndexMatch)
 	r.HandleFunc("/api/matches/{gameNumber}", ws.ShowMatch)
 	r.HandleFunc("/api/matches/{gameNumber}/merged-snapshot", ws.ShowMergedSnapshot)
 
