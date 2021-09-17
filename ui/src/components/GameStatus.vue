@@ -118,6 +118,9 @@
               |
               {{ player.total_science }})
             </span>
+            <span>
+              ${{ player.cash }}
+            </span>
           </span>
           <span>Weapons Level {{ player.tech.weapons.level }}</span>
           <span>Total Ships: {{ player.total_strength }}</span>
