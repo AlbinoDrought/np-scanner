@@ -80,9 +80,7 @@
             vs Defender
             <strong>{{ threat.targetStarTrueStrength }}</strong>
           </span>
-          <!--
           <span>({{ threat.travelTime }})</span>
-          -->
           <span v-if="threat.battleResults.defenderWins" class="result">
             Defender wins with
             <strong>{{ threat.battleResults.defenderShipsRemaining }}</strong>
@@ -182,6 +180,11 @@ import {
   PublicTechResearchStatus,
   Star,
 } from '@/types/api';
+import {
+  distanceBetween,
+  guessBattle,
+  pointsNeededForTechLevel,
+} from '@/types/algo';
 
 const forceGrabTechState = (
   player: PublicPlayer&PrivatePlayer,
@@ -332,13 +335,10 @@ export default class GameStatus extends Vue {
       targetStar: Star,
       targetStarTrueStrength: number,
       targetStarOwner: Player,
-      /*
       distance: number,
-      distanceLY: number,
       fleetSpeed: number,
       travelTicks: number,
       travelTime: string,
-      */
       battleResults: {
           attackerWins: boolean;
           defenderWins: boolean;
@@ -363,32 +363,18 @@ export default class GameStatus extends Vue {
         if (targetStar.puid !== -1 && targetStar.puid !== fleetOwnerID) {
           const targetStarOwner = this.data.scanning_data!.players[targetStar.puid]!;
 
-          /*
-          const distanceX = Math.abs(parseFloat(targetStar.x) - parseFloat(fleet.x));
-          const distanceY = Math.abs(parseFloat(targetStar.y) - parseFloat(fleet.y));
-          const distance = Math.sqrt(
-            (distanceX * distanceX) * (distanceY * distanceY),
-          );
-          const distanceLY = distance * 8;
+          const distance = distanceBetween(targetStar, fleet);
 
           let fleetSpeed = this.data.scanning_data!.fleet_speed;
           if (fleet.w) {
             fleetSpeed *= 3;
           }
 
-          const travelTicks = distanceLY / fleetSpeed; // todo: this is wrong
-          console.log(
-            targetStar.x,
-            fleet.x,
-            Math.abs(parseFloat(targetStar.x) - parseFloat(fleet.x)),
-          );
-          console.log(
-            targetStar.y,
-            fleet.y,
-            Math.abs(parseFloat(targetStar.y) - parseFloat(fleet.y)),
-          );
-          console.log(distance, distanceLY, fleetSpeed, travelTicks);
-          */
+          const travelTicks = Math.ceil(distance / fleetSpeed);
+
+          const targetStarTrueStrength = this.trueStarStrengths.get(targetStarID)
+            || targetStar.st
+            || 0;
 
           fleetThreats.push({
             fleet,
@@ -397,19 +383,16 @@ export default class GameStatus extends Vue {
             fleetOwner,
             targetStarID,
             targetStar,
-            targetStarTrueStrength: this.trueStarStrengths.get(targetStarID) || targetStar.st || 0,
+            targetStarTrueStrength,
             targetStarOwner,
-            /*
             distance,
-            distanceLY,
             fleetSpeed,
             travelTicks,
             travelTime: this.adjustedTicksToTime(travelTicks),
-            */
-            battleResults: this.guessBattle(
+            battleResults: guessBattle(
               fleet.st,
               fleetOwner.tech.weapons.level,
-              this.trueStarStrengths.get(targetStarID) || 0,
+              targetStarTrueStrength,
               targetStarOwner.tech.weapons.level,
             ),
           });
@@ -454,8 +437,7 @@ export default class GameStatus extends Vue {
     status: PublicTechResearchStatus&PrivateTechResearchStatus,
     targetLevel: number,
   ) {
-    const amountNeeded = 144 * (targetLevel - 1);
-
+    const amountNeeded = pointsNeededForTechLevel(targetLevel);
     return `${status.research}/${amountNeeded}`;
   }
 
@@ -468,18 +450,21 @@ export default class GameStatus extends Vue {
       return 'stalled (user has no science)';
     }
 
-    const amountNeeded = 144 * (targetLevel - 1);
+    const amountNeeded = pointsNeededForTechLevel(targetLevel);
     const ticksNeeded = Math.ceil((amountNeeded - status.research) / player.total_science);
     return `${ticksNeeded} ticks (${this.adjustedTicksToTime(ticksNeeded)})`;
   }
 
   private adjustedTicksToTime(unadjustedTicks: number): string {
-    const adjustedTicks = Math.max(0, unadjustedTicks - this.data.scanning_data!.tick_fragment);
+    const adjustedTicks = Math.max(
+      0,
+      unadjustedTicks - this.data.scanning_data!.tick_fragment,
+    );
     return this.ticksToTime(adjustedTicks);
   }
 
   private ticksToTime(ticks: number): string {
-    const ticksAsMinutes = Math.ceil(ticks * this.data.scanning_data!.tick_rate);
+    const ticksAsMinutes = ticks * this.data.scanning_data!.tick_rate;
 
     let minutesRemaining = ticksAsMinutes;
 
@@ -509,58 +494,6 @@ export default class GameStatus extends Vue {
       ', ',
       this.techETA(player, tech, targetLevel),
     ].join('');
-  }
-
-  private guessBattle(
-    attackerShips: number,
-    attackerWeaponsLevel: number,
-    defenderShips: number,
-    defenderWeaponsLevel: number,
-  ) {
-    const defenderWeaponsLevelWithBonus = defenderWeaponsLevel + 1; // defenders bonus
-
-    const ticksToKillAttacker = attackerShips / defenderWeaponsLevelWithBonus; // 14.75
-    const ticksToKillDefender = defenderShips / attackerWeaponsLevel; // 0
-
-    const lowestTicks = Math.ceil(Math.min(ticksToKillAttacker, ticksToKillDefender)); // 0
-
-    const attackerShipsRemaining = Math.max(
-      0,
-      attackerShips - (lowestTicks * defenderWeaponsLevelWithBonus), // 59
-    );
-    let defenderShipsRemaining = Math.max(
-      0,
-      defenderShips - (lowestTicks * attackerWeaponsLevel), // 0
-    );
-
-    if (attackerShipsRemaining === 0 && defenderShipsRemaining === 0) {
-      // defender wins
-      defenderShipsRemaining += attackerWeaponsLevel;
-    }
-
-    const attackerWins = attackerShipsRemaining > 0;
-    const defenderWins = defenderShipsRemaining > 0;
-
-    if (attackerWins === defenderWins) {
-      throw new Error('encountered draw but this should be impossible');
-    }
-
-    // the rounding could be incorrect, not 100% sure
-    const defenderShipsNeeded = Math.floor(Math.max(
-      0,
-      (ticksToKillAttacker * attackerWeaponsLevel) - defenderShips,
-    ));
-
-    return {
-      attackerWins,
-      defenderWins,
-
-      attackerShipsRemaining,
-      defenderShipsRemaining,
-
-      lowestTicks,
-      defenderShipsNeeded,
-    };
   }
 
   /*

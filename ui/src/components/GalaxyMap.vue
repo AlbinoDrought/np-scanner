@@ -11,6 +11,7 @@ import {
 import { Network, Node, Edge } from 'vis-network';
 
 import { APIResponse, Fleet, Star } from '@/types/api';
+import { shipGenerationPerTick } from '@/types/algo';
 
 const colorBase = [
   'rgba(0, 0, 255, 1)',
@@ -188,8 +189,11 @@ export default class GalaxyMap extends Vue {
         if (industry > 0) {
           const player = this.data.scanning_data!.players[star.puid];
           if (player) {
-            const newPowerPerDay = industry * (player.tech.manufacturing.value + 5);
-            const newPowerPerTick = newPowerPerDay / this.data.scanning_data!.production_rate;
+            const newPowerPerTick = shipGenerationPerTick(
+              industry,
+              player.tech.manufacturing.value,
+              this.data.scanning_data!.production_rate,
+            );
             powerLine += ` (+${newPowerPerTick.toFixed(2)}/t)`;
           }
         }
