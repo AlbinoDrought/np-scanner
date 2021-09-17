@@ -123,6 +123,7 @@
           <span>Total Ships: {{ player.total_strength }}</span>
           <span>Total Carriers: {{ player.total_fleets }}</span>
           <span>{{ currentResearchText(player) }}</span>
+          <span>{{ nextResearchText(player) }}</span>
         </p>
 
         <h2>Other Players</h2>
@@ -184,6 +185,7 @@ import {
   distanceBetween,
   guessBattle,
   pointsNeededForTechLevel,
+  ticksNeededForResearch,
 } from '@/types/algo';
 
 const forceGrabTechState = (
@@ -450,8 +452,7 @@ export default class GameStatus extends Vue {
       return 'stalled (user has no science)';
     }
 
-    const amountNeeded = pointsNeededForTechLevel(targetLevel);
-    const ticksNeeded = Math.ceil((amountNeeded - status.research) / player.total_science);
+    const ticksNeeded = ticksNeededForResearch(targetLevel, status.research, player.total_science);
     return `${ticksNeeded} ticks (${this.adjustedTicksToTime(ticksNeeded)})`;
   }
 
@@ -496,7 +497,6 @@ export default class GameStatus extends Vue {
     ].join('');
   }
 
-  /*
   private nextResearchText(player: PublicPlayer&PrivatePlayer) {
     const tech = forceGrabTechState(player, player.researching_next);
     const targetLevel = tech.level + (player.researching === player.researching_next ? 2 : 1);
@@ -506,13 +506,10 @@ export default class GameStatus extends Vue {
       this.niceTechName(player.researching_next),
       ' ',
       targetLevel,
-      ', ',
+      ', currently ',
       this.techProgress(tech, targetLevel),
-      ', ',
-      this.techETA(player, tech, targetLevel),
     ].join('');
   }
-  */
 }
 </script>
 

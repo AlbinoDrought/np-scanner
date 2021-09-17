@@ -81,3 +81,9 @@ export const guessBattle = (
     defenderShipsNeeded,
   };
 };
+
+export const ticksNeededForResearch = (
+  targetLevel: number,
+  currentAmount: number,
+  science: number,
+) => Math.ceil((pointsNeededForTechLevel(targetLevel) - currentAmount) / science);
