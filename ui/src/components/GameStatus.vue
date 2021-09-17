@@ -183,6 +183,7 @@ import {
   PublicPlayer,
   PublicTechResearchStatus,
   Star,
+  techs,
 } from '@/types/api';
 import {
   distanceBetween,
@@ -192,7 +193,7 @@ import {
 } from '@/types/algo';
 
 const forceGrabTechState = (
-  player: PublicPlayer&PrivatePlayer,
+  player: PublicPlayer,
   tech: string,
 ): PublicTechResearchStatus&PrivateTechResearchStatus => {
   const techState = (player.tech as any)[tech];
@@ -408,22 +409,66 @@ export default class GameStatus extends Vue {
     return fleetThreats;
   }
 
-  public get privateFleetThreats() {
+  public get highestTechOwners() {
+    const highestTechOwnerMap = new Map<string, number>();
+    const privateTechOwnerMap = new Map<string, number>();
+
+    this.publicPlayers.forEach((player) => {
+      techs.forEach((tech) => {
+        const currentHigh = highestTechOwnerMap.get(tech);
+        const value = forceGrabTechState(player, tech).level;
+
+        if (value > (currentHigh || 0)) {
+          highestTechOwnerMap.set(tech, player.uid);
+        }
+      });
+    });
+
+    this.privatePlayers.forEach((player) => {
+      techs.forEach((tech) => {
+        const currentHigh = highestTechOwnerMap.get(tech);
+        const currentPrivateHigh = privateTechOwnerMap.get(tech);
+        const value = forceGrabTechState(player, tech).level;
+
+        if (value > (currentHigh || 0)) {
+          highestTechOwnerMap.set(tech, player.uid);
+        }
+
+        if (value > (currentPrivateHigh || 0)) {
+          privateTechOwnerMap.set(tech, player.uid);
+        }
+      });
+    });
+
+    return {
+      all: highestTechOwnerMap,
+      private: privateTechOwnerMap,
+    };
+  }
+
+  private get privateFleetThreatsAndAttacks() {
     const privatePlayerIDs = new Set<number>();
 
     this.privatePlayers.forEach((player) => {
       privatePlayerIDs.add(player.uid);
     });
 
-    return this.fleetThreats.filter((threat) => privatePlayerIDs.has(threat.targetStar.puid));
+    return {
+      threats: this.fleetThreats.filter((threat) => privatePlayerIDs.has(threat.targetStar.puid)),
+      attacks: this.fleetThreats.filter((threat) => privatePlayerIDs.has(threat.fleet.puid)),
+    };
+  }
+
+  public get privateFleetThreats() {
+    return this.privateFleetThreatsAndAttacks.threats;
+  }
+
+  public get privateFleetAttacks() {
+    return this.privateFleetThreatsAndAttacks.attacks;
   }
 
   public get majorThreatCount() {
     return this.privateFleetThreats.filter((t) => t.battleResults.attackerWins).length;
-  }
-
-  public get minorThreatCount() {
-    return this.privateFleetThreats.filter((t) => t.battleResults.defenderWins).length;
   }
 
   public niceTechName(tech: string) {
