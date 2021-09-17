@@ -58,6 +58,16 @@ export interface Tech {
   manufacturing: TechResearchStatus;
 }
 
+export const techs = [
+  'scanning',
+  'propulsion',
+  'terraforming',
+  'research',
+  'weapons',
+  'banking',
+  'manufacturing',
+];
+
 export interface PublicPlayer {
   total_industry: number;
   regard: number;
@@ -131,4 +141,18 @@ export interface ScanningData {
 export interface APIResponse {
   error?: string;
   scanning_data?: ScanningData;
+}
+
+export interface PlayerCreds {
+  player_uid: number;
+  player_alias: string;
+  last_poll: string;
+  latest_snapshot: number;
+}
+
+export interface Match {
+  game_number: string;
+  name: string;
+  last_poll: string;
+  player_creds: PlayerCreds[];
 }
