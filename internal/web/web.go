@@ -221,7 +221,7 @@ func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) 
 		snapshotsToLoad[creds.PlayerUID] = creds.LatestSnapshot
 
 		customSnapshot := r.URL.Query().Get(strconv.Itoa(creds.PlayerUID))
-		if customSnapshot != "" {
+		if customSnapshot != "" && customSnapshot != "latest" {
 			customSnapshotInt, err := strconv.ParseInt(customSnapshot, 10, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
