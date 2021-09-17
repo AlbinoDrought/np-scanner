@@ -163,6 +163,19 @@ const maxPlayerSnapshotLimit = 1000 // arbitrary limit
 func (ws *webServer) IndexPlayerSnapshots(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	gameNumber := vars["gameNumber"]
+
+	match, err := ws.db.FindMatchOrFail(gameNumber)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Match not found"))
+		log.Printf("Match %v not found: %v", gameNumber, err)
+		return
+	}
+
+	if !ws.authorize(w, r, match) {
+		return
+	}
+
 	strPlayerID := vars["player"]
 
 	playerID, err := strconv.Atoi(strPlayerID)
