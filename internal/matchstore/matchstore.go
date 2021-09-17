@@ -1,8 +1,11 @@
 package matchstore
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"strconv"
 
 	"go.albinodrought.com/neptunes-pride/internal/matches"
@@ -23,6 +26,7 @@ type MatchStore interface {
 	ListSnapshotTimes(gameNumber string, playerID int, limit int) ([]int64, error)
 	FindSnapshot(gameNumber string, playerID int, time int64) (*types.APIResponse, error)
 	SaveSnapshot(gameNumber string, snapshot *types.APIResponse) error
+	CompressSnapshots(log func(v ...interface{})) error
 }
 
 func Open(path string) (MatchStore, error) {
@@ -43,7 +47,7 @@ func boot(db *bolt.DB) error {
 		if _, err := tx.CreateBucketIfNotExists([]byte("matches")); err != nil {
 			return err
 		}
-		if _, err := tx.CreateBucketIfNotExists([]byte("snapshots")); err != nil {
+		if _, err := tx.CreateBucketIfNotExists([]byte("gz-snapshots")); err != nil {
 			return err
 		}
 		return nil
@@ -143,7 +147,7 @@ func (store *boltMatchStore) ListSnapshotTimes(gameNumber string, playerID int, 
 	snapshotTimes := []int64{}
 
 	err := store.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("snapshots")).Bucket([]byte(gameNumber))
+		bucket := tx.Bucket([]byte("gz-snapshots")).Bucket([]byte(gameNumber))
 		if bucket == nil {
 			return ErrMatchNotFound
 		}
@@ -178,7 +182,7 @@ func (store *boltMatchStore) FindSnapshot(gameNumber string, playerID int, time 
 	var foundSnapshotSerialized []byte
 
 	err := store.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("snapshots")).Bucket([]byte(gameNumber))
+		bucket := tx.Bucket([]byte("gz-snapshots")).Bucket([]byte(gameNumber))
 		if bucket == nil {
 			return ErrMatchNotFound
 		}
@@ -200,8 +204,18 @@ func (store *boltMatchStore) FindSnapshot(gameNumber string, playerID int, time 
 		return nil, err
 	}
 
+	unzipper, err := gzip.NewReader(bytes.NewReader(foundSnapshotSerialized))
+	if err != nil {
+		return nil, err
+	}
+
+	decompressedSnapshot, err := ioutil.ReadAll(unzipper)
+	if err != nil {
+		return nil, err
+	}
+
 	foundSnapshot := &types.APIResponse{}
-	err = json.Unmarshal(foundSnapshotSerialized, foundSnapshot)
+	err = json.Unmarshal(decompressedSnapshot, foundSnapshot)
 	if err != nil {
 		return nil, err
 	}
@@ -215,8 +229,20 @@ func (store *boltMatchStore) SaveSnapshot(gameNumber string, snapshot *types.API
 		return err
 	}
 
+	buffer := &bytes.Buffer{}
+	writer := gzip.NewWriter(buffer)
+	if _, err = writer.Write(serialized); err != nil {
+		writer.Close()
+		return err
+	}
+	if err = writer.Close(); err != nil {
+		return err
+	}
+
+	compressedSnapshot := buffer.Bytes()
+
 	return store.db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.Bucket([]byte("snapshots")).CreateBucketIfNotExists([]byte(gameNumber))
+		bucket, err := tx.Bucket([]byte("gz-snapshots")).CreateBucketIfNotExists([]byte(gameNumber))
 		if err != nil {
 			return err
 		}
@@ -226,6 +252,69 @@ func (store *boltMatchStore) SaveSnapshot(gameNumber string, snapshot *types.API
 			return err
 		}
 
-		return bucket.Put([]byte(strconv.FormatInt(snapshot.ScanningData.Now, 10)), serialized)
+		return bucket.Put([]byte(strconv.FormatInt(snapshot.ScanningData.Now, 10)), compressedSnapshot)
+	})
+}
+
+func (store *boltMatchStore) CompressSnapshots(log func(v ...interface{})) error {
+	return store.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("snapshots"))
+		if bucket == nil {
+			return errors.New("no snapshots bucket found - already compressed?")
+		}
+
+		targetBucket := tx.Bucket([]byte("gz-snapshots"))
+
+		err := bucket.ForEach(func(k, v []byte) error {
+			// k = game numbers
+			bucket := bucket.Bucket(k)
+			if bucket == nil {
+				return nil
+			}
+
+			targetBucket, err := targetBucket.CreateBucketIfNotExists(k)
+			if err != nil {
+				return err
+			}
+			log("compressing for game ", string(k))
+
+			return bucket.ForEach(func(k, v []byte) error {
+				// k = player IDs
+				bucket := bucket.Bucket(k)
+				if bucket == nil {
+					return nil
+				}
+
+				targetBucket, err := targetBucket.CreateBucketIfNotExists(k)
+				if err != nil {
+					return err
+				}
+				log("compressing for player ", string(k))
+
+				return bucket.ForEach(func(k, v []byte) error {
+					// k = snapshot time, v = uncompressed snapshot
+					log("compressing ", string(k))
+					buffer := &bytes.Buffer{}
+					writer := gzip.NewWriter(buffer)
+					if _, err = writer.Write(v); err != nil {
+						writer.Close()
+						return err
+					}
+					if err = writer.Close(); err != nil {
+						return err
+					}
+
+					compressedSnapshot := buffer.Bytes()
+					return targetBucket.Put(k, compressedSnapshot)
+				})
+			})
+		})
+
+		if err != nil {
+			return err
+		}
+
+		log("removing old bucket")
+		return tx.DeleteBucket([]byte("snapshots"))
 	})
 }
