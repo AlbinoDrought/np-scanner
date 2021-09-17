@@ -158,6 +158,48 @@ func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(match)
 }
 
+const maxPlayerSnapshotLimit = 1000 // arbitrary limit
+
+func (ws *webServer) IndexPlayerSnapshots(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	gameNumber := vars["gameNumber"]
+	strPlayerID := vars["player"]
+
+	playerID, err := strconv.Atoi(strPlayerID)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Malformed {player}"))
+		return
+	}
+
+	strLimit := r.URL.Query().Get("limit")
+	if strLimit == "" {
+		strLimit = "50"
+	}
+
+	limit, err := strconv.Atoi(strLimit)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Malformed ?limit"))
+		return
+	}
+
+	if limit > maxPlayerSnapshotLimit {
+		limit = maxPlayerSnapshotLimit
+	}
+
+	snapshotTimes, err := ws.db.ListSnapshotTimes(gameNumber, playerID, limit)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal server error"))
+		log.Printf("Error indexing matches: %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(snapshotTimes)
+}
+
 func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	gameNumber := vars["gameNumber"]
@@ -216,6 +258,7 @@ func (ws *webServer) Router() *mux.Router {
 
 	r.HandleFunc("/api/matches", ws.IndexMatch)
 	r.HandleFunc("/api/matches/{gameNumber}", ws.ShowMatch)
+	r.HandleFunc("/api/matches/{gameNumber}/player-snapshots/{player}", ws.IndexPlayerSnapshots)
 	r.HandleFunc("/api/matches/{gameNumber}/merged-snapshot", ws.ShowMergedSnapshot)
 
 	box := rice.MustFindBox("packaged")

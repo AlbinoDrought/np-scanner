@@ -20,6 +20,7 @@ type MatchStore interface {
 	FindMatchOrFail(gameNumber string) (*matches.Match, error)
 	FindOrCreateMatch(gameNumber string) (*matches.Match, error)
 
+	ListSnapshotTimes(gameNumber string, playerID int, limit int) ([]int64, error)
 	FindSnapshot(gameNumber string, playerID int, time int64) (*types.APIResponse, error)
 	SaveSnapshot(gameNumber string, snapshot *types.APIResponse) error
 }
@@ -138,13 +139,49 @@ func (store *boltMatchStore) FindOrCreateMatch(gameNumber string) (*matches.Matc
 	return foundMatch, nil
 }
 
+func (store *boltMatchStore) ListSnapshotTimes(gameNumber string, playerID int, limit int) ([]int64, error) {
+	snapshotTimes := []int64{}
+
+	err := store.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("snapshots")).Bucket([]byte(gameNumber))
+		if bucket == nil {
+			return ErrMatchNotFound
+		}
+
+		bucket = bucket.Bucket([]byte(strconv.Itoa(playerID)))
+		if bucket == nil {
+			return ErrSnapshotNotFound
+		}
+
+		c := bucket.Cursor()
+
+		i := 0
+		for k, _ := c.Last(); k != nil && i < limit; k, _ = c.Prev() {
+			snapshotTime, err := strconv.ParseInt(string(k), 10, 64)
+			if err != nil {
+				return err
+			}
+			snapshotTimes = append(snapshotTimes, snapshotTime)
+			i++
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return snapshotTimes, nil
+}
+
 func (store *boltMatchStore) FindSnapshot(gameNumber string, playerID int, time int64) (*types.APIResponse, error) {
 	var foundSnapshotSerialized []byte
 
 	err := store.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("snapshots")).Bucket([]byte(gameNumber))
 		if bucket == nil {
-			return ErrSnapshotNotFound
+			return ErrMatchNotFound
 		}
 
 		bucket = bucket.Bucket([]byte(strconv.Itoa(playerID)))
