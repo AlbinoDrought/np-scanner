@@ -158,10 +158,9 @@ func (store *boltMatchStore) ListSnapshotTimes(gameNumber string, playerID int, 
 		i := 0
 		for k, _ := c.Last(); k != nil && i < limit; k, _ = c.Prev() {
 			snapshotTime, err := strconv.ParseInt(string(k), 10, 64)
-			if err != nil {
-				return err
+			if err == nil {
+				snapshotTimes = append(snapshotTimes, snapshotTime)
 			}
-			snapshotTimes = append(snapshotTimes, snapshotTime)
 			i++
 		}
 
