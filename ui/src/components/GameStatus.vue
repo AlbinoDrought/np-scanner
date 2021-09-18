@@ -177,6 +177,7 @@ import {
   APIResponse,
   Fleet,
   isPrivatePlayer,
+  Match,
   Player,
   PrivatePlayer,
   PrivateTechResearchStatus,
@@ -205,6 +206,8 @@ export default class GameStatus extends Vue {
   @Prop() private gameNumber!: number;
 
   @Prop() private data!: APIResponse;
+
+  @Prop() private match!: Match;
 
   public moreInfo = false;
 

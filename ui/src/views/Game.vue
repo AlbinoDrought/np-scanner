@@ -3,18 +3,20 @@
     <div class="details" v-if="data">
       <galaxy-map
         :data="data"
+        :match="match"
         :selectedStar="selectedStar"
-        @selectStar="v => selectedStar = v"
+        @selectStar="v => { selectedStar = v; selectedFleet = null }"
         :selectedFleet="selectedFleet"
-        @selectFleet="v => selectedFleet = v"
+        @selectFleet="v => { selectedFleet = v; selectedStar = null; }"
       />
       <game-status
         :gameNumber="gameNumber"
+        :match="match"
         :data="data"
         :selectedStar="selectedStar"
-        @selectStar="v => selectedStar = v"
+        @selectStar="v => { selectedStar = v; selectedFleet = null }"
         :selectedFleet="selectedFleet"
-        @selectFleet="v => selectedFleet = v"
+        @selectFleet="v => { selectedFleet = v; selectedStar = null; }"
       />
     </div>
     <div class="form-wrapper" v-else-if="requiresAuth">
@@ -35,7 +37,12 @@ import {
 } from 'vue-property-decorator';
 import GalaxyMap from '@/components/GalaxyMap.vue';
 import GameStatus from '@/components/GameStatus.vue';
-import { APIResponse, Fleet, Star } from '@/types/api';
+import {
+  APIResponse,
+  Fleet,
+  Match,
+  Star,
+} from '@/types/api';
 
 @Component({
   components: {
@@ -56,6 +63,8 @@ import { APIResponse, Fleet, Star } from '@/types/api';
 })
 export default class Game extends Vue {
   @Prop({ required: true }) public gameNumber!: string;
+
+  private match: Match|null = null;
 
   private data: APIResponse|null = null;
 
@@ -126,16 +135,33 @@ export default class Game extends Vue {
     await this.loadDataNoWipe();
   }
 
+  private async fetchMatch() {
+    const resp = await fetch(`/api/matches/${this.gameNumber}?access_code=${this.accessCode}`);
+    this.requiresAuth = resp.status === 401;
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+    const json = await resp.json();
+    this.match = json as Match;
+  }
+
+  private async fetchSnapshot() {
+    const resp = await fetch(`/api/matches/${this.gameNumber}/merged-snapshot?access_code=${this.accessCode}`);
+    this.requiresAuth = resp.status === 401;
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+    const json = await resp.json();
+    this.data = json as APIResponse;
+  }
+
   private async loadDataNoWipe() {
     this.error = null;
     try {
-      const resp = await fetch(`/api/matches/${this.gameNumber}/merged-snapshot?access_code=${this.accessCode}`);
-      this.requiresAuth = resp.status === 401;
-      if (!resp.ok) {
-        throw new Error(await resp.text());
-      }
-      const json = await resp.json();
-      this.data = json as APIResponse;
+      await Promise.all([
+        this.fetchMatch(),
+        this.fetchSnapshot(),
+      ]);
     } catch (ex) {
       console.error(ex);
       this.error = ex;

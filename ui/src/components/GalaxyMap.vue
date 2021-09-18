@@ -255,12 +255,12 @@ export default class GalaxyMap extends Vue {
 
   @Watch('selectedStar')
   private selectStar() {
-    if (this.skipFocus) {
-      this.skipFocus = false;
+    if (!this.lastChart || !this.selectedStar) {
       return;
     }
 
-    if (!this.lastChart || !this.selectedStar) {
+    if (this.skipFocus) {
+      this.skipFocus = false;
       return;
     }
 
@@ -271,12 +271,12 @@ export default class GalaxyMap extends Vue {
 
   @Watch('selectedFleet')
   private selectFleet() {
-    if (this.skipFocus) {
-      this.skipFocus = false;
+    if (!this.lastChart || !this.selectedFleet) {
       return;
     }
 
-    if (!this.lastChart || !this.selectedFleet) {
+    if (this.skipFocus) {
+      this.skipFocus = false;
       return;
     }
 
