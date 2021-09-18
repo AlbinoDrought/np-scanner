@@ -32,11 +32,12 @@ func (match *Match) CheckAccessCode(plaintext []byte) error {
 }
 
 type PlayerCreds struct {
-	PlayerUID      int       `json:"player_uid"`
-	PlayerAlias    string    `json:"player_alias"`
-	APIKey         string    `json:"api_key,omitempty"`
-	LastPoll       time.Time `json:"last_poll"`
-	LatestSnapshot int64     `json:"latest_snapshot"`
+	PlayerUID       int       `json:"player_uid"`
+	PlayerAlias     string    `json:"player_alias"`
+	APIKey          string    `json:"api_key,omitempty"`
+	LastPoll        time.Time `json:"last_poll"`
+	LatestSnapshot  int64     `json:"latest_snapshot"`
+	PollingDisabled bool      `json:"polling_disabled"`
 }
 
 func NewMatch(gameNumber string) *Match {

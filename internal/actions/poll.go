@@ -72,6 +72,11 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 			continue
 		}
 
+		if config.PollingDisabled {
+			log.Printf("polling is disabled for game %v user %v \"%v\" ", gameNumber, config.PlayerUID, config.PlayerAlias)
+			continue
+		}
+
 		resp, err := client.State(ctx, &npapi.Request{
 			GameNumber: gameNumber,
 			APIKey:     config.APIKey,

@@ -19,6 +19,7 @@ func Execute() error {
 func init() {
 	addGlobalConfigFlags(rootCmd)
 	rootCmd.AddCommand(compressSnapshotsCmd)
+	rootCmd.AddCommand(disablePlayerCmd)
 	rootCmd.AddCommand(pollCmd)
 	rootCmd.AddCommand(protectCmd)
 	rootCmd.AddCommand(setCmd)
