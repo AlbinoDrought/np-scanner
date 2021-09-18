@@ -2,14 +2,18 @@
   <div class="game">
     <div class="details" v-if="data">
       <galaxy-map
+        :accessCode="accessCode"
         :data="data"
         :match="match"
         :selectedStar="selectedStar"
         @selectStar="v => { selectedStar = v; selectedFleet = null }"
         :selectedFleet="selectedFleet"
         @selectFleet="v => { selectedFleet = v; selectedStar = null; }"
+        @travel="v => timeSelection = v"
+        @returnToPresent="timeSelection = null"
       />
       <game-status
+        :accessCode="accessCode"
         :gameNumber="gameNumber"
         :match="match"
         :data="data"
@@ -17,6 +21,8 @@
         @selectStar="v => { selectedStar = v; selectedFleet = null }"
         :selectedFleet="selectedFleet"
         @selectFleet="v => { selectedFleet = v; selectedStar = null; }"
+        @travel="v => timeSelection = v"
+        @returnToPresent="timeSelection = null"
       />
     </div>
     <div class="form-wrapper" v-else-if="requiresAuth">
@@ -67,6 +73,8 @@ export default class Game extends Vue {
   private match: Match|null = null;
 
   private data: APIResponse|null = null;
+
+  private timeSelection: { [key: string]: string|number }|null = null;
 
   private accessCode = '';
 
@@ -146,7 +154,15 @@ export default class Game extends Vue {
   }
 
   private async fetchSnapshot() {
-    const resp = await fetch(`/api/matches/${this.gameNumber}/merged-snapshot?access_code=${this.accessCode}`);
+    let timeKeyString = '';
+    const timeSelectionParams = Object.entries(this.timeSelection || {})
+      .map(([player, snapshot]) => `${player}=${snapshot}`);
+
+    if (timeSelectionParams.length > 0) {
+      timeKeyString = `&${timeSelectionParams.join('&')}`;
+    }
+
+    const resp = await fetch(`/api/matches/${this.gameNumber}/merged-snapshot?access_code=${this.accessCode}${timeKeyString}`);
     this.requiresAuth = resp.status === 401;
     if (!resp.ok) {
       throw new Error(await resp.text());
@@ -155,6 +171,7 @@ export default class Game extends Vue {
     this.data = json as APIResponse;
   }
 
+  @Watch('timeSelection')
   private async loadDataNoWipe() {
     this.error = null;
     try {

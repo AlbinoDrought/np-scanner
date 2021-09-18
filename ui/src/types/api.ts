@@ -154,5 +154,5 @@ export interface Match {
   game_number: string;
   name: string;
   last_poll: string;
-  player_creds: PlayerCreds[];
+  player_creds: { [key: string]: PlayerCreds };
 }

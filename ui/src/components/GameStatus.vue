@@ -18,6 +18,18 @@
         ({{ lastUpdatedString }})
       </p>
 
+      <a href="#" @click.prevent="timeTravel = !timeTravel">
+        Ghetto Time Travel
+      </a>
+
+      <time-travel
+        v-if="timeTravel"
+        :accessCode="accessCode"
+        :match="match"
+        @travel="v => $emit('travel', v)"
+        @returnToPresent="$emit('returnToPresent')"
+      />
+
       <p
         class="threats"
         :class="{
@@ -193,6 +205,8 @@ import {
   ticksNeededForResearch,
 } from '@/types/algo';
 
+import TimeTravel from './TimeTravel.vue';
+
 const forceGrabTechState = (
   player: PublicPlayer,
   tech: string,
@@ -201,13 +215,21 @@ const forceGrabTechState = (
   return techState as PublicTechResearchStatus&PrivateTechResearchStatus;
 };
 
-@Component({})
+@Component({
+  components: {
+    TimeTravel,
+  },
+})
 export default class GameStatus extends Vue {
+  @Prop() public accessCode!: string;
+
   @Prop() private gameNumber!: number;
 
   @Prop() private data!: APIResponse;
 
   @Prop() private match!: Match;
+
+  private timeTravel = false;
 
   public moreInfo = false;
 
