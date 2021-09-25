@@ -6,3 +6,7 @@ internal/web/rice-box.go
 *.db
 dist
 *.tar
+*.gz
+*.tgz
+*.bak
+*.notcompact
