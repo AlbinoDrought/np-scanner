@@ -114,6 +114,7 @@
           v-for="player in privatePlayers"
           :key="`private-player-${player.uid}`"
           class="player player--private"
+          :class="{ 'player--wiped-out': playerDead(player) }"
         >
           <span>
             <strong>
@@ -133,7 +134,11 @@
             <span>
               ${{ player.cash }}
             </span>
+            <span v-if="player.ai">
+              [AI]
+            </span>
           </span>
+          <span v-if="player.conceded === 3">(completely wiped out)</span>
           <span>Weapons Level {{ player.tech.weapons.level }}</span>
           <span>Total Ships: {{ player.total_strength }}</span>
           <span>Total Carriers: {{ player.total_fleets }}</span>
@@ -146,6 +151,7 @@
           v-for="player in publicPlayers"
           :key="`public-player-${player.uid}`"
           class="player player--public"
+          :class="{ 'player--wiped-out': playerDead(player) }"
         >
           <span>
             <strong>
@@ -162,7 +168,11 @@
               |
               {{ player.total_science }})
             </span>
+            <span v-if="player.ai">
+              [AI]
+            </span>
           </span>
+          <span v-if="player.conceded === 3">(completely wiped out)</span>
           <span>Weapons Level {{ player.tech.weapons.level }}</span>
           <span>
             Total Ships: {{ player.total_strength }},
@@ -277,6 +287,11 @@ export default class GameStatus extends Vue {
 
     return Object.values(this.data.scanning_data!.players)
       .filter((p) => !privatePlayerIDs.has(p.uid));
+  }
+
+  public playerDead(player: PublicPlayer): boolean {
+    // conceded===3 is supposed to work, but sometimes it stays at 1/2
+    return player.conceded === 3 || (player.total_strength === 0 && player.total_stars === 0);
   }
 
   private get visibleStrength(): Map<number, number> {
@@ -623,6 +638,10 @@ export default class GameStatus extends Vue {
     .player, .threat {
       display: flex;
       flex-direction: column;
+    }
+
+    .player--wiped-out {
+      opacity: 0.5;
     }
 
     .threats {

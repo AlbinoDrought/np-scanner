@@ -111,14 +111,25 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 			continue
 		}
 
-		config.LastPoll = time.Now()
-		config.LatestSnapshot = resp.ScanningData.Now
-		if resp.ScanningData.Players[strconv.Itoa(resp.ScanningData.PlayerUID)].Conceded == types.ConcededWipedOut {
+		playerData := resp.ScanningData.Players[strconv.Itoa(resp.ScanningData.PlayerUID)]
+		if playerData.Conceded == types.ConcededWipedOut {
 			// player's scanning data will no longer be updated: they're completely dead.
 			// stop scanning it.
 			config.PollingDisabled = true
 			log.Printf("last poll for completely wiped out game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
 		}
+
+		if resp.ScanningData.Started && playerData.TotalStrength == 0 && playerData.TotalStars == 0 {
+			// same as above, but API has not given player the "totally wiped out" status
+			// stop scanning it.
+			// (I think this happens if the player quits or goes AFK before total wipeout)
+			// (players can still be active as AI when conceded is == 1 or 2)
+			config.PollingDisabled = true
+			log.Printf("last poll for assumed-wiped-out game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
+		}
+
+		config.LastPoll = time.Now()
+		config.LatestSnapshot = resp.ScanningData.Now
 		match.PlayerCreds[i] = config
 
 		if resp.ScanningData.GameOver == types.GameOverYes {
