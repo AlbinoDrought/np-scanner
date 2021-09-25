@@ -14,9 +14,17 @@
       Error: {{ error }}
     </p>
     <ul v-else class="matches">
-      <li v-for="match in matches" :key="match.game_number" class="match">
+      <li
+        v-for="match in matches"
+        :key="match.game_number"
+        class="match"
+        :class="{ 'match--finished': match.finished }"
+      >
         <router-link :to="{ name: 'Game', params: { gameNumber: match.game_number } }">
           {{ match.name }}
+          <span v-if="match.finished">
+            (finished)
+          </span>
         </router-link>
       </li>
     </ul>
@@ -97,5 +105,9 @@ export default class Home extends Vue {
 .match {
   margin: 0.5em;
   font-size: larger;
+}
+
+.match--finished {
+  opacity: 0.5;
 }
 </style>

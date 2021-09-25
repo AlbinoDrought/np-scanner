@@ -153,6 +153,7 @@ export interface PlayerCreds {
 export interface Match {
   game_number: string;
   name: string;
+  finished: boolean;
   last_poll: string;
   player_creds: { [key: string]: PlayerCreds };
 }

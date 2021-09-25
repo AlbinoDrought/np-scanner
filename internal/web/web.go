@@ -124,7 +124,18 @@ func (ws *webServer) IndexMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sort.Slice(allMatches, func(i, j int) bool {
+	sort.SliceStable(allMatches, func(i, j int) bool {
+		if allMatches[i].Finished && !allMatches[j].Finished {
+			// i is finished, j is not finished, move j before i
+			return false
+		}
+
+		if !allMatches[i].Finished && allMatches[j].Finished {
+			// i is not finished, j is finished, move i before j
+			return true
+		}
+
+		// sort by name
 		return strings.Compare(allMatches[i].Name, allMatches[j].Name) == -1
 	})
 
