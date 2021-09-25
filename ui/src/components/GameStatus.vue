@@ -641,7 +641,8 @@ export default class GameStatus extends Vue {
     }
 
     .player--wiped-out {
-      opacity: 0.5;
+      // opacity: 0.5;
+      display: none;
     }
 
     .threats {
