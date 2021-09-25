@@ -229,9 +229,15 @@ func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	ignoredSnapshots := 0
 	snapshotsToLoad := make(map[int]int64, len(match.PlayerCreds))
 	for _, creds := range match.PlayerCreds {
-		snapshotsToLoad[creds.PlayerUID] = creds.LatestSnapshot
+		if creds.PollingDisabled {
+			// these were messing up the "Last Polled" time, only load these if specified by user below
+			snapshotsToLoad[creds.PlayerUID] = 0
+		} else {
+			snapshotsToLoad[creds.PlayerUID] = creds.LatestSnapshot
+		}
 
 		customSnapshot := r.URL.Query().Get(strconv.Itoa(creds.PlayerUID))
 		if customSnapshot != "" && customSnapshot != "latest" {
@@ -245,11 +251,19 @@ func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) 
 
 			snapshotsToLoad[creds.PlayerUID] = customSnapshotInt
 		}
+
+		if snapshotsToLoad[creds.PlayerUID] == 0 {
+			ignoredSnapshots++
+		}
 	}
 
 	i := 0
-	loadedSnapshots := make([]*types.APIResponse, len(snapshotsToLoad))
+	loadedSnapshots := make([]*types.APIResponse, len(snapshotsToLoad)-ignoredSnapshots)
 	for playerID, snapshotTime := range snapshotsToLoad {
+		if snapshotTime == 0 {
+			continue // ignored
+		}
+
 		loadedSnapshots[i], err = ws.db.FindSnapshot(gameNumber, playerID, snapshotTime)
 		i++
 		if err != nil {
