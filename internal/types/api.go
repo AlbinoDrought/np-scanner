@@ -75,6 +75,13 @@ type Tech struct {
 	Manufacturing TechResearchStatus `json:"manufacturing"`
 }
 
+const (
+	ConcededNo       = 0
+	ConcededYes      = 1
+	ConcededInactive = 2
+	ConcededWipedOut = 3
+)
+
 type PublicPlayer struct {
 	TotalIndustry int    `json:"total_industry"`
 	Regard        int    `json:"regard"`
@@ -112,6 +119,11 @@ type Player struct {
 	PublicPlayer
 	PrivatePlayer
 }
+
+const (
+	GameOverNo  = 0
+	GameOverYes = 1
+)
 
 type ScanningData struct {
 	Fleets            map[string]Fleet  `json:"fleets"`

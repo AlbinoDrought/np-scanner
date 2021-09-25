@@ -8,6 +8,7 @@ import (
 
 type Match struct {
 	GameNumber  string              `json:"game_number"`
+	Finished    bool                `json:"finished"`
 	Name        string              `json:"name"`
 	LastPoll    time.Time           `json:"last_poll"`
 	PlayerCreds map[int]PlayerCreds `json:"player_creds,omitempty"`

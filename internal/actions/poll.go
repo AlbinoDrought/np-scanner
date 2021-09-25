@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
 	"go.albinodrought.com/neptunes-pride/internal/matchstore"
 	"go.albinodrought.com/neptunes-pride/internal/npapi"
+	"go.albinodrought.com/neptunes-pride/internal/types"
 )
 
 type PollOptions struct {
@@ -59,6 +61,10 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 		}
 	}
 
+	if match.Finished {
+		return nil
+	}
+
 	if len(match.PlayerCreds) == 0 {
 		log.Printf("match %v has no credentials", gameNumber)
 		return nil
@@ -107,7 +113,18 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 
 		config.LastPoll = time.Now()
 		config.LatestSnapshot = resp.ScanningData.Now
+		if resp.ScanningData.Players[strconv.Itoa(resp.ScanningData.PlayerUID)].Conceded == types.ConcededWipedOut {
+			// player's scanning data will no longer be updated: they're completely dead.
+			// stop scanning it.
+			config.PollingDisabled = true
+			log.Printf("last poll for completely wiped out game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
+		}
 		match.PlayerCreds[i] = config
+
+		if resp.ScanningData.GameOver == types.GameOverYes {
+			match.Finished = true
+			log.Printf("finished game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
+		}
 
 		log.Printf("retrieved state for game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
 	}
