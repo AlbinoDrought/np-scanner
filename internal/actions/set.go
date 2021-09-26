@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -52,6 +53,17 @@ func SetCredentials(ctx context.Context, db matchstore.MatchStore, client npapi.
 
 	if match.Name == "" {
 		match.Name = resp.ScanningData.Name
+	}
+
+	if existingCreds, ok := match.PlayerCreds[playerID]; ok {
+		if existingCreds.APIKey == key {
+			return SetCredentialsError{
+				Base:       errors.New("player and key exist"),
+				GameNumber: gameNumber,
+				PlayerUID:  playerID,
+				Message:    "already have this key",
+			}
+		}
 	}
 
 	match.PlayerCreds[playerID] = matches.PlayerCreds{

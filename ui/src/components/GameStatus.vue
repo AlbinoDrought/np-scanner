@@ -109,7 +109,17 @@
           </span>
         </p>
 
-        <h2>Loaded Players</h2>
+        <h2>
+          Loaded Players
+          <a href="#" @click.prevent="addingPlayer = !addingPlayer">(add new)</a>
+        </h2>
+        <div v-if="addingPlayer" class="form-wrapper">
+          <form class="form" @submit.prevent="tryApiKey">
+            <label for="playerKey">Enter API Key:</label>
+            <input name="playerKey" type="text" v-model="playerKey">
+            <button type="submit">{{ addKeyText }}</button>
+          </form>
+        </div>
         <p
           v-for="player in privatePlayers"
           :key="`private-player-${player.uid}`"
@@ -239,9 +249,32 @@ export default class GameStatus extends Vue {
 
   @Prop() private match!: Match;
 
+  private addingPlayer = false;
+
+  private playerKey = '';
+
+  private addKeyText = 'Add Key';
+
   private timeTravel = false;
 
   public moreInfo = false;
+
+  public async tryApiKey() {
+    try {
+      const resp = await fetch(`/api/matches/${this.gameNumber}/api-key?access_code=${this.accessCode}&api-key=${this.playerKey}`, {
+        method: 'POST',
+      });
+      if (!resp.ok) {
+        throw new Error(await resp.text());
+      }
+      this.addingPlayer = false;
+      this.addKeyText = 'Add Key';
+      this.$emit('forceRefresh');
+    } catch (ex) {
+      console.error(ex);
+      this.addKeyText = `${this.playerKey} didn't work`;
+    }
+  }
 
   public get title() {
     return this.data.scanning_data!.name;
@@ -663,5 +696,22 @@ export default class GameStatus extends Vue {
       }
     }
   }
+}
+
+.form-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 500px;
+
+  input { margin: 1em 0; }
 }
 </style>

@@ -171,6 +171,40 @@ func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {
 
 const maxPlayerSnapshotLimit = 1000 // arbitrary limit
 
+func (ws *webServer) AddApiKey(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	gameNumber := vars["gameNumber"]
+
+	match, err := ws.db.FindMatchOrFail(gameNumber)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Match not found"))
+		log.Printf("Match %v not found: %v", gameNumber, err)
+		return
+	}
+
+	if !ws.authorize(w, r, match) {
+		return
+	}
+
+	key := r.URL.Query().Get("api-key")
+	if key == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Malformed ?api-key="))
+		return
+	}
+
+	err = actions.SetCredentials(r.Context(), ws.db, ws.client, gameNumber, key)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("failed to add key"))
+		log.Printf("Failed to set credentials for %v: %v", gameNumber, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (ws *webServer) IndexPlayerSnapshots(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	gameNumber := vars["gameNumber"]
@@ -296,6 +330,7 @@ func (ws *webServer) Router() *mux.Router {
 
 	r.HandleFunc("/api/matches", ws.IndexMatch)
 	r.HandleFunc("/api/matches/{gameNumber}", ws.ShowMatch)
+	r.HandleFunc("/api/matches/{gameNumber}/api-key", ws.AddApiKey)
 	r.HandleFunc("/api/matches/{gameNumber}/player-snapshots/{player}", ws.IndexPlayerSnapshots)
 	r.HandleFunc("/api/matches/{gameNumber}/merged-snapshot", ws.ShowMergedSnapshot)
 
