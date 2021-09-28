@@ -626,8 +626,20 @@ export default class GameStatus extends Vue {
   }
 
   private nextResearchText(player: PublicPlayer&PrivatePlayer) {
-    const tech = forceGrabTechState(player, player.researching_next);
-    const targetLevel = tech.level + (player.researching === player.researching_next ? 2 : 1);
+    let tech = forceGrabTechState(player, player.researching_next);
+    let targetLevel = tech.level + 1;
+
+    if (player.researching === player.researching_next) {
+      // player has the same research queued twice
+      // the regular research is for `tech.level + 1`, this is for `tech.level + 2`
+      targetLevel += 1;
+      // once the player finishes their regular research, progress will reset to 0.
+      // mimic that:
+      tech = {
+        ...tech,
+        research: 0,
+      };
+    }
 
     return [
       'Next ',
