@@ -11,6 +11,7 @@
         @selectFleet="v => { selectedFleet = v; selectedStar = null; }"
         @travel="v => timeSelection = v"
         @returnToPresent="timeSelection = null"
+        @forceRefresh="loadData"
       />
       <game-status
         :accessCode="accessCode"
@@ -23,6 +24,7 @@
         @selectFleet="v => { selectedFleet = v; selectedStar = null; }"
         @travel="v => timeSelection = v"
         @returnToPresent="timeSelection = null"
+        @forceRefresh="loadData"
       />
     </div>
     <div class="form-wrapper" v-else-if="requiresAuth">
