@@ -1,7 +1,7 @@
 all: dist/np-scanner ui
 
 .PHONY: dist/np-scanner
-dist/np-scanner:
+dist/np-scanner: ui
 	rm -rf internal/web/packaged && mkdir -p internal/web/packaged
 	cp -ar ui/dist/. internal/web/packaged/.
 	GO111MODULE=off go get github.com/GeertJohan/go.rice/rice
