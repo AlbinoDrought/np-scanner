@@ -1,9 +1,14 @@
 # Scanner for Neptune's Pride
 
-<a href="https://hub.docker.com/r/albinodrought/np-scanner">
-<img alt="albinodrought/np-scanner Docker Pulls" src="https://img.shields.io/docker/pulls/albinodrought/np-scanner">
-</a>
-<a href="https://github.com/AlbinoDrought/np-scanner/blob/master/LICENSE"><img alt="AGPL-3.0 License" src="https://img.shields.io/github/license/AlbinoDrought/np-scanner"></a>
+<p align="center">
+  <img src="./.readme/banner.png">
+  <p align="center">
+    <a href="https://hub.docker.com/r/albinodrought/np-scanner">
+    <img alt="albinodrought/np-scanner Docker Pulls" src="https://img.shields.io/docker/pulls/albinodrought/np-scanner">
+    </a>
+    <a href="https://github.com/AlbinoDrought/np-scanner/blob/master/LICENSE"><img alt="AGPL-3.0 License" src="https://img.shields.io/github/license/AlbinoDrought/np-scanner"></a>
+  </p>
+</p>
 
 An unofficial companion site for the game [Neptune's Pride](https://np.ironhelmet.com/) that aids you in calculating battle outcomes and collaborating with allies.
 
