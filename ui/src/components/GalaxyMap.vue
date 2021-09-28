@@ -8,7 +8,12 @@
 import {
   Component, Prop, Vue, Watch,
 } from 'vue-property-decorator';
-import { Network, Node, Edge } from 'vis-network';
+import {
+  Network,
+  Node,
+  Edge,
+  Options,
+} from 'vis-network';
 
 import { APIResponse, Fleet, Star } from '@/types/api';
 import { shipGenerationPerTick } from '@/types/algo';
@@ -114,6 +119,9 @@ export default class GalaxyMap extends Vue {
   @Prop()
   public selectedFleet!: Fleet|null;
 
+  @Prop({ default: null })
+  public chartSize!: string|null;
+
   private lastChart: Network|null = null;
 
   private scale = 1000;
@@ -212,21 +220,32 @@ export default class GalaxyMap extends Vue {
       });
     });
 
+    const options: Options = {
+      physics: {
+        enabled: false,
+      },
+      interaction: {
+        dragNodes: false,
+      },
+      groups,
+    };
+
+    if (this.chartSize) {
+      // I started off defaulting these to "100%", which seems to be the default.
+      // That made the chart get stuck at tiny heights.
+      // I then tried defaulting to `undefined`. That broke the chart.
+      // This works: only set chart size params when needed
+      options.width = this.chartSize;
+      options.height = this.chartSize;
+    }
+
     this.lastChart = new Network(
       this.$refs.container as HTMLElement,
       {
         nodes: data.reverse(),
         edges,
       },
-      {
-        physics: {
-          enabled: false,
-        },
-        interaction: {
-          dragNodes: false,
-        },
-        groups,
-      },
+      options,
     );
     this.lastChart.on('selectNode', (event: { nodes?: string[] }) => {
       if (!event.nodes || event.nodes.length !== 1) {
@@ -291,6 +310,7 @@ export default class GalaxyMap extends Vue {
       const parent = this.$refs.parent as HTMLElement;
 
       container.style.height = `${parent.clientHeight}px`;
+      this.$emit('rendered', container);
     });
   }
 

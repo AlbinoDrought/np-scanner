@@ -25,6 +25,17 @@
         @travel="v => timeSelection = v"
         @returnToPresent="timeSelection = null"
         @forceRefresh="loadData"
+        @createMassiveWarMap="createMassiveWarMap = true"
+      />
+      <massive-war-map
+        v-if="createMassiveWarMap"
+        :accessCode="accessCode"
+        :gameNumber="gameNumber"
+        :match="match"
+        :data="data"
+        :selectedStar="selectedStar"
+        :selectedFleet="selectedFleet"
+        @created="createMassiveWarMap = false"
       />
     </div>
     <div class="form-wrapper" v-else-if="requiresAuth">
@@ -45,6 +56,7 @@ import {
 } from 'vue-property-decorator';
 import GalaxyMap from '@/components/GalaxyMap.vue';
 import GameStatus from '@/components/GameStatus.vue';
+import MassiveWarMap from '@/components/MassiveWarMap.vue';
 import {
   APIResponse,
   Fleet,
@@ -56,6 +68,7 @@ import {
   components: {
     GalaxyMap,
     GameStatus,
+    MassiveWarMap,
   },
   metaInfo() {
     const me = this as any;
@@ -93,6 +106,8 @@ export default class Game extends Vue {
   private selectedStar: Star|null = null;
 
   private selectedFleet: Fleet|null = null;
+
+  private createMassiveWarMap = false;
 
   public async tryCode() {
     this.submitText = 'Trying code...';

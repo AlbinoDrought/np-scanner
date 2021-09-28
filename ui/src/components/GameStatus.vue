@@ -195,6 +195,13 @@
             Hidden: {{ visibleAndHiddenFleets[player.uid].hidden }}
           </span>
         </p>
+
+        <h2>Misc Actions</h2>
+        <p>
+          <a href="#" @click.prevent="$emit('createMassiveWarMap')">
+            Download War Map
+          </a>
+        </p>
       </template>
     </div>
   </div>
