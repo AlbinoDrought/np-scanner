@@ -4,6 +4,7 @@ all: ui dist/np-scanner
 dist/np-scanner:
 	rm -rf internal/web/packaged && mkdir -p internal/web/packaged
 	cp -ar ui/dist/. internal/web/packaged/.
+	git archive HEAD -o internal/web/packaged/source.tar.gz
 	GO111MODULE=off go get github.com/GeertJohan/go.rice/rice
 	go get
 	go generate ./...

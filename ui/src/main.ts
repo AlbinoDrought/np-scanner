@@ -7,6 +7,12 @@ Vue.config.productionTip = false;
 
 Vue.use(VueMeta);
 
+console.log(`
+# AlbinoDrought/np-scanner
+Repo: https://github.com/AlbinoDrought/np-scanner
+Source: ${window.location.origin}/source.tar.gz
+`);
+
 new Vue({
   router,
   render: (h) => h(App),

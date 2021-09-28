@@ -1,4 +1,3 @@
-.git
 .deployment
 ui/node_modules
 internal/web/packaged
