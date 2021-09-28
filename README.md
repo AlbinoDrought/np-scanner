@@ -40,6 +40,23 @@ Other commands:
 
 `docker build -t albinodrought/np-scanner .`
 
+#### Sample Docker Compose
+
+```yml
+version: '2'
+services:
+  np-scanner:
+    image: albinodrought/np-scanner
+    volumes:
+    - /some/local/path:/data
+    command:
+    - /np-scanner
+    - --db-path=/data/np.db
+    - serve
+    ports:
+      - 38080:38080
+```
+
 ### Without Docker
 
 You need:
@@ -53,3 +70,5 @@ make
 ```
 
 Run `make` to generate an all-inclusive `./dist/np-scanner` binary.
+
+
