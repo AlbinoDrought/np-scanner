@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"go.albinodrought.com/neptunes-pride/internal/matchstore"
+	"go.albinodrought.com/neptunes-pride/internal/multierror"
 	"go.albinodrought.com/neptunes-pride/internal/npapi"
 	"go.albinodrought.com/neptunes-pride/internal/types"
 )
@@ -33,18 +33,6 @@ type PollError struct {
 
 func (err PollError) Error() string {
 	return fmt.Sprintf("%v: %+v | [gameNumber=%v] [playerUID=%v] [playerAlias=%v]", err.Message, err.Base, err.GameNumber, err.PlayerUID, err.PlayerAlias)
-}
-
-type MultiError struct {
-	Errors []error
-}
-
-func (err MultiError) Error() string {
-	messages := make([]string, len(err.Errors))
-	for i, innerError := range err.Errors {
-		messages[i] = innerError.Error()
-	}
-	return strings.Join(messages, "|")
 }
 
 func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, gameNumber string, pollOptions *PollOptions) error {
@@ -150,15 +138,7 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 		})
 	}
 
-	if len(pollErrors) == 1 {
-		return pollErrors[0]
-	}
-
-	if len(pollErrors) > 0 {
-		return MultiError{pollErrors}
-	}
-
-	return nil
+	return multierror.Optional(pollErrors)
 }
 
 func PollMatches(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, gameNumbers []string, pollOptions *PollOptions) error {
@@ -170,15 +150,7 @@ func PollMatches(ctx context.Context, db matchstore.MatchStore, client npapi.Nep
 		}
 	}
 
-	if len(pollErrors) == 1 {
-		return pollErrors[0]
-	}
-
-	if len(pollErrors) > 0 {
-		return MultiError{pollErrors}
-	}
-
-	return nil
+	return multierror.Optional(pollErrors)
 }
 
 func PollAllMatches(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, pollOptions *PollOptions) error {
