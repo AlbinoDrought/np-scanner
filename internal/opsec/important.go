@@ -7,12 +7,13 @@ import (
 )
 
 type Threat struct {
-	Fleet        *types.Fleet
-	Order        []int
-	FleetOwnerID string
-	FleetOwner   *types.Player
-	TargetStarID string
-	TargetStar   *types.Star
+	Fleet         types.Fleet
+	Order         []int
+	FleetOwnerID  string
+	FleetOwner    *types.Player
+	FleetStrength int
+	TargetStarID  string
+	TargetStar    *types.Star
 	// todo: TargetStartTrueStrength
 	TargetStarOwnerID string
 	TargetStarOwner   *types.Player
@@ -56,8 +57,10 @@ func FindThreats(resp *types.APIResponse) []Threat {
 				continue
 			}
 
+			// todo: fix .Fleet - I think I'm using the loop var, and it's getting overwritten
+			// shotgun debugging workaround using non-pointer
 			threats = append(threats, Threat{
-				Fleet:             &fleet,
+				Fleet:             fleet,
 				Order:             order,
 				FleetOwnerID:      fleetOwnerID,
 				FleetOwner:        &fleetOwner,

@@ -3,7 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +17,7 @@ import (
 	"go.albinodrought.com/neptunes-pride/internal/actions"
 	"go.albinodrought.com/neptunes-pride/internal/matches"
 	"go.albinodrought.com/neptunes-pride/internal/matchstore"
+	"go.albinodrought.com/neptunes-pride/internal/notifications"
 	"go.albinodrought.com/neptunes-pride/internal/npapi"
 	"go.albinodrought.com/neptunes-pride/internal/opsec"
 	"go.albinodrought.com/neptunes-pride/internal/types"
@@ -34,7 +35,7 @@ var DefaultWebOptions = WebOptions{
 	PollPeriod: time.Minute * 5,
 }
 
-func Run(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, options *WebOptions) error {
+func Run(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, guard notifications.Guard, sinks []notifications.Sink, options *WebOptions) error {
 	if options == nil {
 		options = &DefaultWebOptions
 	}
@@ -43,6 +44,8 @@ func Run(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPri
 		ctx,
 		db,
 		client,
+		guard,
+		sinks,
 	}
 
 	server := &http.Server{
@@ -70,6 +73,8 @@ type webServer struct {
 	ctx    context.Context
 	db     matchstore.MatchStore
 	client npapi.NeptunesPrideClient
+	guard  notifications.Guard
+	sinks  []notifications.Sink
 }
 
 func (ws *webServer) authorize(w http.ResponseWriter, r *http.Request, match *matches.Match) bool {
@@ -99,10 +104,35 @@ func (ws *webServer) Poll(period time.Duration) {
 		case <-ws.ctx.Done():
 			return
 		case <-timer.C:
-			err := actions.PollAllMatches(ws.ctx, ws.db, ws.client, nil)
+			pollResults, err := actions.PollAllMatches(ws.ctx, ws.db, ws.client, nil)
 			if err != nil {
 				log.Println("error while doing periodic pull", err)
 			}
+
+			for gameNumber, pollResult := range pollResults {
+				if !pollResult.Changed {
+					continue
+				}
+
+				match, err := ws.db.FindMatchOrFail(gameNumber)
+				if err != nil {
+					log.Println("failed to find match that changed during poll", gameNumber, err)
+					continue
+				}
+
+				snapshot, err := ws.getMergedSnapshot(match, map[string]string{})
+				if err != nil {
+					log.Println("failed to get merged snapshot for notification use", gameNumber, err)
+					continue
+				}
+
+				notifiables := actions.CheckNotifiables(gameNumber, snapshot)
+				err = notifications.SendGuarded(ws.ctx, ws.guard, notifiables, ws.sinks)
+				if err != nil {
+					log.Println("failed to send notifications", err)
+				}
+			}
+
 			timer.Reset(period)
 		}
 	}
@@ -258,6 +288,58 @@ func (ws *webServer) IndexPlayerSnapshots(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(snapshotTimes)
 }
 
+var ErrNoSnapshotsLoaded = errors.New("no snapshots loaded")
+
+func (ws *webServer) getMergedSnapshot(match *matches.Match, overrides map[string]string) (*types.APIResponse, error) {
+	ignoredSnapshots := 0
+	snapshotsToLoad := make(map[int]int64, len(match.PlayerCreds))
+	for _, creds := range match.PlayerCreds {
+		if creds.PollingDisabled {
+			// these were messing up the "Last Polled" time, only load these if specified by user below
+			snapshotsToLoad[creds.PlayerUID] = 0
+		} else {
+			snapshotsToLoad[creds.PlayerUID] = creds.LatestSnapshot
+		}
+
+		customSnapshot, ok := overrides[strconv.Itoa(creds.PlayerUID)]
+		if ok && customSnapshot != "" && customSnapshot != "latest" {
+			customSnapshotInt, err := strconv.ParseInt(customSnapshot, 10, 64)
+			if err != nil {
+				log.Printf("Malformed snapshot int for match %v player %v, %v: %v", match.GameNumber, creds.PlayerUID, customSnapshot, err)
+				return nil, err
+			}
+
+			snapshotsToLoad[creds.PlayerUID] = customSnapshotInt
+		}
+
+		if snapshotsToLoad[creds.PlayerUID] == 0 {
+			ignoredSnapshots++
+		}
+	}
+
+	var err error
+	i := 0
+	loadedSnapshots := make([]*types.APIResponse, len(snapshotsToLoad)-ignoredSnapshots)
+	for playerID, snapshotTime := range snapshotsToLoad {
+		if snapshotTime == 0 {
+			continue // ignored
+		}
+
+		loadedSnapshots[i], err = ws.db.FindSnapshot(match.GameNumber, playerID, snapshotTime)
+		i++
+		if err != nil {
+			log.Printf("Could not load snapshot for match %v player %v, %v: %v", match.GameNumber, playerID, snapshotTime, err)
+			return nil, err
+		}
+	}
+
+	if len(loadedSnapshots) == 0 {
+		return nil, ErrNoSnapshotsLoaded
+	}
+
+	return opsec.Merge(loadedSnapshots...), nil
+}
+
 func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	gameNumber := vars["gameNumber"]
@@ -274,52 +356,20 @@ func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	ignoredSnapshots := 0
-	snapshotsToLoad := make(map[int]int64, len(match.PlayerCreds))
+	overrides := make(map[string]string)
+
 	for _, creds := range match.PlayerCreds {
-		if creds.PollingDisabled {
-			// these were messing up the "Last Polled" time, only load these if specified by user below
-			snapshotsToLoad[creds.PlayerUID] = 0
-		} else {
-			snapshotsToLoad[creds.PlayerUID] = creds.LatestSnapshot
-		}
-
-		customSnapshot := r.URL.Query().Get(strconv.Itoa(creds.PlayerUID))
-		if customSnapshot != "" && customSnapshot != "latest" {
-			customSnapshotInt, err := strconv.ParseInt(customSnapshot, 10, 64)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(w, "Malformed snapshot int for player %v", creds.PlayerUID)
-				log.Printf("Malformed snapshot int for match %v player %v, %v: %v", gameNumber, creds.PlayerUID, customSnapshot, err)
-				return
-			}
-
-			snapshotsToLoad[creds.PlayerUID] = customSnapshotInt
-		}
-
-		if snapshotsToLoad[creds.PlayerUID] == 0 {
-			ignoredSnapshots++
-		}
+		stringID := strconv.Itoa(creds.PlayerUID)
+		overrides[stringID] = r.URL.Query().Get(stringID)
 	}
 
-	i := 0
-	loadedSnapshots := make([]*types.APIResponse, len(snapshotsToLoad)-ignoredSnapshots)
-	for playerID, snapshotTime := range snapshotsToLoad {
-		if snapshotTime == 0 {
-			continue // ignored
-		}
-
-		loadedSnapshots[i], err = ws.db.FindSnapshot(gameNumber, playerID, snapshotTime)
-		i++
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			fmt.Fprintf(w, "Could not load snapshot for player %v at %v", playerID, snapshotTime)
-			log.Printf("Could not load snapshot for match %v player %v, %v: %v", gameNumber, playerID, snapshotTime, err)
-			return
-		}
+	mergedSnapshot, err := ws.getMergedSnapshot(match, overrides)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error merging snapshot"))
+		log.Printf("Failed to get merged snapshot for match %v with overrides %+v: %v", gameNumber, overrides, err)
+		return
 	}
-
-	mergedSnapshot := opsec.Merge(loadedSnapshots...)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(mergedSnapshot)
