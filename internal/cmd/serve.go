@@ -23,9 +23,16 @@ var serveCmd = &cobra.Command{
 			log.Fatal("failed to open DB", err)
 		}
 
+		guard, err := openNotificationGuard()
+		if err != nil {
+			log.Fatal("failed to open notification guard", err)
+		}
+
+		sinks := buildSinks()
+
 		client := openClient()
 
-		err = web.Run(context.Background(), db, client, &web.WebOptions{
+		err = web.Run(context.Background(), db, client, guard, sinks, &web.WebOptions{
 			Address:    serveCmdAddress,
 			PollPeriod: serveCmdPollPeriod,
 		})

@@ -20,6 +20,7 @@ An unofficial companion site for the game [Neptune's Pride](https://np.ironhelme
 - Share scanning data and research targets with other Neptune's Pride players
 - Travel through time and view old snapshots of the universe
 - Central list of all threats and their categories: red major threats that need immediate action, or green minor threats that are safe to ignore (for now!)
+- Early warning system alerts you when a star is targetted
 - Data-intensive galaxy map to find high-value target stars
 
 ## Usage
@@ -33,6 +34,10 @@ Other commands:
 - Help: `np-scanner help`
 - Test poll: `np-scanner poll [game number or "all"]`
 - Disable match key: `np-scanner disable-player [game number] [player-id]`
+
+Config:
+
+- Discord Webhook URL for alerts: env var `NP_SCANNER_DISCORD_WEBHOOK_URL=https://...` or cli arg `--discord-webhook-url=https://...`
 
 ## Building
 

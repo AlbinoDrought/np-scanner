@@ -32,9 +32,9 @@ var pollCmd = &cobra.Command{
 		}
 
 		if len(args) == 1 && args[0] == "all" {
-			err = actions.PollAllMatches(context.Background(), db, client, pollOptions)
+			_, err = actions.PollAllMatches(context.Background(), db, client, pollOptions)
 		} else {
-			err = actions.PollMatches(context.Background(), db, client, args, pollOptions)
+			_, err = actions.PollMatches(context.Background(), db, client, args, pollOptions)
 		}
 
 		if err != nil {

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"go.albinodrought.com/neptunes-pride/internal/matchstore"
+	"go.albinodrought.com/neptunes-pride/internal/multierror"
 	"go.albinodrought.com/neptunes-pride/internal/npapi"
 	"go.albinodrought.com/neptunes-pride/internal/types"
 )
@@ -23,6 +23,10 @@ var DefaultPollOptions = PollOptions{
 	MinTimePassed: 15 * time.Minute,
 }
 
+type PollResult struct {
+	Changed bool
+}
+
 type PollError struct {
 	Base        error
 	GameNumber  string
@@ -35,26 +39,16 @@ func (err PollError) Error() string {
 	return fmt.Sprintf("%v: %+v | [gameNumber=%v] [playerUID=%v] [playerAlias=%v]", err.Message, err.Base, err.GameNumber, err.PlayerUID, err.PlayerAlias)
 }
 
-type MultiError struct {
-	Errors []error
-}
-
-func (err MultiError) Error() string {
-	messages := make([]string, len(err.Errors))
-	for i, innerError := range err.Errors {
-		messages[i] = innerError.Error()
-	}
-	return strings.Join(messages, "|")
-}
-
-func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, gameNumber string, pollOptions *PollOptions) error {
+func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, gameNumber string, pollOptions *PollOptions) (PollResult, error) {
 	if pollOptions == nil {
 		pollOptions = &DefaultPollOptions
 	}
 
+	pollResult := PollResult{}
+
 	match, err := db.FindMatchOrFail(gameNumber)
 	if err != nil {
-		return PollError{
+		return pollResult, PollError{
 			Base:       err,
 			GameNumber: gameNumber,
 			Message:    "failed finding match",
@@ -62,12 +56,12 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 	}
 
 	if match.Finished {
-		return nil
+		return pollResult, nil
 	}
 
 	if len(match.PlayerCreds) == 0 {
 		log.Printf("match %v has no credentials", gameNumber)
-		return nil
+		return pollResult, nil
 	}
 
 	pollErrors := []error{}
@@ -137,6 +131,7 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 			log.Printf("finished game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
 		}
 
+		pollResult.Changed = true
 		log.Printf("retrieved state for game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
 	}
 
@@ -150,41 +145,29 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 		})
 	}
 
-	if len(pollErrors) == 1 {
-		return pollErrors[0]
-	}
-
-	if len(pollErrors) > 0 {
-		return MultiError{pollErrors}
-	}
-
-	return nil
+	return pollResult, multierror.Optional(pollErrors)
 }
 
-func PollMatches(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, gameNumbers []string, pollOptions *PollOptions) error {
+func PollMatches(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, gameNumbers []string, pollOptions *PollOptions) (map[string]PollResult, error) {
+	pollResults := make(map[string]PollResult)
 	pollErrors := []error{}
 
 	for _, gameNumber := range gameNumbers {
-		if err := PollMatch(ctx, db, client, gameNumber, pollOptions); err != nil {
+		pollResult, err := PollMatch(ctx, db, client, gameNumber, pollOptions)
+		pollResults[gameNumber] = pollResult
+
+		if err != nil {
 			pollErrors = append(pollErrors, err)
 		}
 	}
 
-	if len(pollErrors) == 1 {
-		return pollErrors[0]
-	}
-
-	if len(pollErrors) > 0 {
-		return MultiError{pollErrors}
-	}
-
-	return nil
+	return pollResults, multierror.Optional(pollErrors)
 }
 
-func PollAllMatches(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, pollOptions *PollOptions) error {
+func PollAllMatches(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPrideClient, pollOptions *PollOptions) (map[string]PollResult, error) {
 	matches, err := db.Matches()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	return PollMatches(ctx, db, client, matches, pollOptions)

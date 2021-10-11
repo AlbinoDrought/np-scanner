@@ -7,6 +7,10 @@ import (
 )
 
 func Merge(responses ...*types.APIResponse) *types.APIResponse {
+	if len(responses) == 0 {
+		return nil
+	}
+
 	sort.Slice(responses, func(i, j int) bool {
 		return responses[i].ScanningData.Now < responses[j].ScanningData.Now
 	})
