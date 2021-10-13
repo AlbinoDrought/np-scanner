@@ -54,6 +54,7 @@ type Match struct {
 	Name           string              `json:"name"`
 	LastPoll       time.Time           `json:"last_poll"`
 	PlayerCreds    map[int]PlayerCreds `json:"player_creds,omitempty"`
+	DiscordUserIDs map[int]string      `json:"discord_user_ids,omitempty"`
 	OldAccessCode  []byte              `json:"access_code,omitempty"`
 	AccessProfiles []AccessProfile     `json:"access_profiles,omitempty"`
 }

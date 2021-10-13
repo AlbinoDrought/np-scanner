@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"time"
 
 	"go.albinodrought.com/neptunes-pride/internal/multierror"
 )
@@ -34,6 +35,8 @@ func SendGuarded(ctx context.Context, guard Guard, notifiables []Notifiable, sin
 				errors = append(errors, err)
 			}
 		}
+
+		time.Sleep(time.Second) // was hitting discord ratelimit, this is a quick workaround
 	}
 	return multierror.Optional(errors)
 }

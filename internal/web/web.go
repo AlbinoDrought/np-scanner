@@ -69,6 +69,13 @@ func Run(ctx context.Context, db matchstore.MatchStore, client npapi.NeptunesPri
 	return server.ListenAndServe()
 }
 
+func clearSensitiveMatchDetails(match *matches.Match) {
+	match.OldAccessCode = nil
+	match.AccessProfiles = nil
+	match.DiscordUserIDs = nil
+	match.PlayerCreds = nil
+}
+
 type webServer struct {
 	ctx    context.Context
 	db     matchstore.MatchStore
@@ -126,7 +133,7 @@ func (ws *webServer) Poll(period time.Duration) {
 					continue
 				}
 
-				notifiables := actions.CheckNotifiables(gameNumber, snapshot)
+				notifiables := actions.CheckNotifiables(match, snapshot)
 				err = notifications.SendGuarded(ws.ctx, ws.guard, notifiables, ws.sinks)
 				if err != nil {
 					log.Println("failed to send notifications", err)
@@ -142,9 +149,7 @@ func (ws *webServer) IndexMatch(w http.ResponseWriter, r *http.Request) {
 	allMatches := []matches.Match{}
 
 	err := ws.db.EachMatch(true, func(gameNumber string, match *matches.Match) {
-		match.OldAccessCode = nil
-		match.AccessProfiles = nil
-		match.PlayerCreds = nil
+		clearSensitiveMatchDetails(match)
 		allMatches = append(allMatches, *match)
 	})
 
@@ -191,9 +196,6 @@ func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	match.OldAccessCode = nil
-	match.AccessProfiles = nil
-
 	visibleCredsMap := map[int]matches.PlayerCreds{}
 	for i, creds := range match.PlayerCreds {
 		if !accessProfile.CanViewPlayerID(i) {
@@ -202,6 +204,7 @@ func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {
 		creds.APIKey = ""
 		visibleCredsMap[i] = creds
 	}
+	clearSensitiveMatchDetails(match)
 	match.PlayerCreds = visibleCredsMap
 
 	w.Header().Set("Content-Type", "application/json")

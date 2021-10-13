@@ -36,6 +36,7 @@ Other commands:
 - Disable match key: `np-scanner disable-player [game number] [player-id]`
 - Create a code that can only see data from player 1 and 2: `np-scanner protect --allowed-uid 1 --allowed-uid 2 [game number] [code]`
 - Replace all other codes: `np-scanner protect --wipe [game number] [code]`
+- Associate a game player with their Discord user ID for notifications: `np-scanner set-discord [game number] [player uid] [discord user id]`
 
 Config:
 

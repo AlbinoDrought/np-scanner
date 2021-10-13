@@ -23,5 +23,6 @@ func init() {
 	rootCmd.AddCommand(pollCmd)
 	rootCmd.AddCommand(protectCmd)
 	rootCmd.AddCommand(setCmd)
+	rootCmd.AddCommand(setDiscordCmd)
 	rootCmd.AddCommand(serveCmd)
 }
