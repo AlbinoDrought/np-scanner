@@ -34,8 +34,16 @@ type discordWebhook struct {
 var ErrBadResponse = errors.New("bad response")
 
 func (s *discordWebhookSink) Send(ctx context.Context, notifiable Notifiable) error {
+	var message string
+
+	if discordNotifiable, ok := notifiable.(DiscordNotifiable); ok {
+		message = discordNotifiable.DiscordMessage()
+	} else {
+		message = notifiable.Message()
+	}
+
 	webhook := discordWebhook{
-		Content: notifiable.Message(),
+		Content: message,
 	}
 	jsonBytes, err := json.Marshal(&webhook)
 	if err != nil {
