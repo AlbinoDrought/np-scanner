@@ -34,6 +34,8 @@ Other commands:
 - Help: `np-scanner help`
 - Test poll: `np-scanner poll [game number or "all"]`
 - Disable match key: `np-scanner disable-player [game number] [player-id]`
+- Create a code that can only see data from player 1 and 2: `np-scanner protect --allowed-uid 1 --allowed-uid 2 [game number] [code]`
+- Replace all other codes: `np-scanner protect --wipe [game number] [code]`
 
 Config:
 
