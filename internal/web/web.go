@@ -77,20 +77,20 @@ type webServer struct {
 	sinks  []notifications.Sink
 }
 
-func (ws *webServer) authorize(w http.ResponseWriter, r *http.Request, match *matches.Match) bool {
+func (ws *webServer) authorize(w http.ResponseWriter, r *http.Request, match *matches.Match) (matches.AccessProfile, bool) {
 	if !match.HasAccessCode() {
-		return true
+		return matches.PermissiveAccessProfile(), true
 	}
 
-	err := match.CheckAccessCode([]byte(r.URL.Query().Get("access_code")))
+	accessProfile, err := match.CheckAccessCode([]byte(r.URL.Query().Get("access_code")))
 	if err == nil {
-		return true
+		return accessProfile, true
 	}
 
 	w.WriteHeader(http.StatusUnauthorized)
 	w.Write([]byte("Wrong access code"))
 	log.Printf("Authorization failed for match %v: %v", match.GameNumber, err)
-	return false
+	return matches.AccessProfile{}, false
 }
 
 func (ws *webServer) Poll(period time.Duration) {
@@ -120,7 +120,7 @@ func (ws *webServer) Poll(period time.Duration) {
 					continue
 				}
 
-				snapshot, err := ws.getMergedSnapshot(match, map[string]string{})
+				snapshot, err := ws.getMergedSnapshot(match, matches.PermissiveAccessProfile(), map[string]string{})
 				if err != nil {
 					log.Println("failed to get merged snapshot for notification use", gameNumber, err)
 					continue
@@ -142,7 +142,8 @@ func (ws *webServer) IndexMatch(w http.ResponseWriter, r *http.Request) {
 	allMatches := []matches.Match{}
 
 	err := ws.db.EachMatch(true, func(gameNumber string, match *matches.Match) {
-		match.AccessCode = nil
+		match.OldAccessCode = nil
+		match.AccessProfiles = nil
 		match.PlayerCreds = nil
 		allMatches = append(allMatches, *match)
 	})
@@ -185,15 +186,23 @@ func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !ws.authorize(w, r, match) {
+	accessProfile, ok := ws.authorize(w, r, match)
+	if !ok {
 		return
 	}
 
-	match.AccessCode = nil
+	match.OldAccessCode = nil
+	match.AccessProfiles = nil
+
+	visibleCredsMap := map[int]matches.PlayerCreds{}
 	for i, creds := range match.PlayerCreds {
+		if !accessProfile.CanViewPlayerID(i) {
+			continue
+		}
 		creds.APIKey = ""
-		match.PlayerCreds[i] = creds
+		visibleCredsMap[i] = creds
 	}
+	match.PlayerCreds = visibleCredsMap
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(match)
@@ -213,7 +222,7 @@ func (ws *webServer) AddApiKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !ws.authorize(w, r, match) {
+	if _, ok := ws.authorize(w, r, match); !ok {
 		return
 	}
 
@@ -247,7 +256,8 @@ func (ws *webServer) IndexPlayerSnapshots(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if !ws.authorize(w, r, match) {
+	accessProfile, ok := ws.authorize(w, r, match)
+	if !ok {
 		return
 	}
 
@@ -257,6 +267,12 @@ func (ws *webServer) IndexPlayerSnapshots(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Malformed {player}"))
+		return
+	}
+
+	if !accessProfile.CanViewPlayerID(playerID) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("Not allowed to view {player}"))
 		return
 	}
 
@@ -290,10 +306,14 @@ func (ws *webServer) IndexPlayerSnapshots(w http.ResponseWriter, r *http.Request
 
 var ErrNoSnapshotsLoaded = errors.New("no snapshots loaded")
 
-func (ws *webServer) getMergedSnapshot(match *matches.Match, overrides map[string]string) (*types.APIResponse, error) {
+func (ws *webServer) getMergedSnapshot(match *matches.Match, accessProfile matches.AccessProfile, overrides map[string]string) (*types.APIResponse, error) {
 	ignoredSnapshots := 0
 	snapshotsToLoad := make(map[int]int64, len(match.PlayerCreds))
 	for _, creds := range match.PlayerCreds {
+		if !accessProfile.CanViewPlayerID(creds.PlayerUID) {
+			continue
+		}
+
 		if creds.PollingDisabled {
 			// these were messing up the "Last Polled" time, only load these if specified by user below
 			snapshotsToLoad[creds.PlayerUID] = 0
@@ -352,7 +372,8 @@ func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if !ws.authorize(w, r, match) {
+	accessProfile, ok := ws.authorize(w, r, match)
+	if !ok {
 		return
 	}
 
@@ -363,7 +384,7 @@ func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) 
 		overrides[stringID] = r.URL.Query().Get(stringID)
 	}
 
-	mergedSnapshot, err := ws.getMergedSnapshot(match, overrides)
+	mergedSnapshot, err := ws.getMergedSnapshot(match, accessProfile, overrides)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error merging snapshot"))
