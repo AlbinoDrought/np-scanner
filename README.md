@@ -41,6 +41,8 @@ Other commands:
 Config:
 
 - Discord Webhook URL for alerts: env var `NP_SCANNER_DISCORD_WEBHOOK_URL=https://...` or cli arg `--discord-webhook-url=https://...`
+- DB path (stores match config, snapshots): cli arg `--db-path=/foo/bar.db`
+- Notification DB path (stores history of sent notifications): cli arg `--notification-db-path=/foo/bar-notifications.db`
 
 ## Building
 
@@ -60,6 +62,7 @@ services:
     command:
     - /np-scanner
     - --db-path=/data/np.db
+    - --notification-db-path=/data/np-notifications.db
     - serve
     ports:
       - 38080:38080
