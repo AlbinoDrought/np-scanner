@@ -39,10 +39,14 @@ func (t *notifiableThreat) DiscordMessage() string {
 	targetStarOwner := t.threat.TargetStarOwner.Alias
 
 	if t.match.DiscordUserIDs != nil {
-		fleetOwnerDiscordID, ok := t.match.DiscordUserIDs[t.threat.FleetOwner.UID]
-		if ok {
-			fleetOwner = fmt.Sprintf("<@%v>", fleetOwnerDiscordID)
-		}
+		/*
+			// @mentions are useful for targeted notifications
+			// notifying users of their own attacks against others is less useful
+			fleetOwnerDiscordID, ok := t.match.DiscordUserIDs[t.threat.FleetOwner.UID]
+			if ok {
+				fleetOwner = fmt.Sprintf("<@%v>", fleetOwnerDiscordID)
+			}
+		*/
 
 		targetStarOwnerDiscordID, ok := t.match.DiscordUserIDs[t.threat.TargetStarOwner.UID]
 		if ok {
