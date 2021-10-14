@@ -101,4 +101,8 @@ Want to see your allies scanning data on the official map?
 
 6. Done! If it worked, your shared scanning data should be loaded. If it didn't work, reset data by adding `#wipe-np-scanner` to the page URL and refresh. If it still doesn't work, try Firefox. If you're already on Firefox, it's probably broken and you'll need to debug it. Good luck. You can open the browser system console with Ctrl-Shift-J to see some Greasemonkey errors that don't show in the regular console.
 
+Injected data will mostly appear in `[square brackets]`:
+
+![Screenshot of Userscript Map](./.readme/userscript-sample-map-view.png)
+
 Userscript only tested in Firefox.
