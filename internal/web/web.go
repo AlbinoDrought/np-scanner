@@ -14,6 +14,7 @@ import (
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"go.albinodrought.com/neptunes-pride/internal/actions"
 	"go.albinodrought.com/neptunes-pride/internal/matches"
 	"go.albinodrought.com/neptunes-pride/internal/matchstore"
@@ -405,7 +406,7 @@ func (ws *webServer) ShowMergedSnapshot(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(mergedSnapshot)
 }
 
-func (ws *webServer) Router() *mux.Router {
+func (ws *webServer) Router() http.Handler {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/api/matches", ws.IndexMatch)
@@ -417,7 +418,13 @@ func (ws *webServer) Router() *mux.Router {
 	box := rice.MustFindBox("packaged")
 	r.PathPrefix("/").Handler(http.FileServer(&SPAFileSystem{box.HTTPBox()}))
 
-	return r
+	// allow read-only CORS for userscript usage
+	handler := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET"},
+	}).Handler(r)
+
+	return handler
 }
 
 // SPAFileSystem allows you to use history-based routing.
