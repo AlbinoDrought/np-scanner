@@ -41,7 +41,7 @@ async function loadData(NeptunesPride, match) {
     gameStateStar.nr = apiResponseStar.nr; // natural resources
     gameStateStar.r = apiResponseStar.r; // resources
     gameStateStar.ga = apiResponseStar.ga; // warp gate presence
-    gameStateStar.n = `${apiResponseStar.n} [LOADED]`;
+    gameStateStar.n = `[${apiResponseStar.n}]`;
 
     // cloneInto prevents data access errors
     NeptunesPride.universe.galaxy.stars[uid] = cloneInto(
@@ -65,7 +65,7 @@ async function loadData(NeptunesPride, match) {
     }
 
     // if this ran multiple times, values would get wrapped multiple times
-    apiResponseFleet.n = `${apiResponseFleet.n} [LOADED]`;
+    apiResponseFleet.n = `[${apiResponseFleet.n}]`;
     apiResponseFleet.st = `[${apiResponseFleet.st}]`;
     apiResponseFleet.orders = apiResponseFleet.o;
     apiResponseFleet.player = NeptunesPride.universe.galaxy.players[apiResponseFleet.puid];
