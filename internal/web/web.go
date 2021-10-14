@@ -214,6 +214,12 @@ func (ws *webServer) ShowMatch(w http.ResponseWriter, r *http.Request) {
 const maxPlayerSnapshotLimit = 1000 // arbitrary limit
 
 func (ws *webServer) AddApiKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("expected POST"))
+		return
+	}
+
 	vars := mux.Vars(r)
 	gameNumber := vars["gameNumber"]
 
