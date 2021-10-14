@@ -34,6 +34,7 @@ async function loadData(NeptunesPride, match) {
     gameStateStar.v = apiResponseStar.v; // uses strings
     gameStateStar.st = apiResponseStar.st; // strength
     // todo: totalDefenses field, I assume this includes fleet strength
+    gameStateStar.totalDefenses = gameStateStar.st;
     gameStateStar.e = apiResponseStar.e; // econ
     gameStateStar.i = apiResponseStar.i; // industry
     gameStateStar.s = apiResponseStar.s; // science
