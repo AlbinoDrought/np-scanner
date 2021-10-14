@@ -86,7 +86,7 @@ Run `make` to generate an all-inclusive `./dist/np-scanner` binary.
 
 Want to see your allies scanning data on the official map? 
 
-1. Install [the userscript](./NPScannerMapEmbed.user.js) using [Greasemonkey](https://addons.mozilla.org/en-CA/firefox/addon/greasemonkey/) in Firefox or [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo//Open) in Chromium.
+1. Install [the userscript](./NPScannerMapEmbed.user.js) using [Greasemonkey](https://addons.mozilla.org/en-CA/firefox/addon/greasemonkey/) in Firefox, [Violentmonkey](https://chrome.google.com/webstore/detail/violentmonkey/jinjaccalgkegednnccohejagnlnfdag) in Chromium.
 
 2. Visit your Neptune's Pride match on the official site
 
@@ -106,3 +106,7 @@ Injected data will mostly appear in `[square brackets]`:
 ![Screenshot of Userscript Map](./.readme/userscript-sample-map-view.png)
 
 Userscript only tested in Firefox.
+
+### Android
+
+You can install desktop extensions in Firefox Nightly [by doing a dev-mode dance](https://web.archive.org/web/20211007060220/https://blog.mozilla.org/addons/2020/09/29/expanded-extension-support-in-firefox-for-android-nightly/). If you don't want to make your own collection, I am using [this one](https://addons.mozilla.org/en-US/firefox/collections/17078259/FFAndroidxx/), user ID **17078259** collection name **FFAndroidxx**. Only Violentmonkey worked for me here (Greasemonkey would not install the script, Tampermonkey installed it but nothing happened). 
