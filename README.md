@@ -82,4 +82,23 @@ make
 
 Run `make` to generate an all-inclusive `./dist/np-scanner` binary.
 
+## Userscript
 
+Want to see your allies scanning data on the official map? 
+
+1. Install [the userscript](./NPScannerMapEmbed.user.js) using [Greasemonkey](https://addons.mozilla.org/en-CA/firefox/addon/greasemonkey/) in Firefox or [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo//Open) in Chromium.
+
+2. Visit your Neptune's Pride match on the official site
+
+3. Click "OK" when the `Enable NP-Scanner for this match?` dialog appears:
+![Screenshot of "Enable NP-Scanner for this match?" dialog](./.readme/userscript-prompt-enable.png)
+
+4. Enter your host and click "OK" when the `Enter NP-Scanner url` dialog appears:
+![Screenshot of "Enter NP-Scanner url" dialog](./.readme/userscript-prompt-url.png)
+
+5. Enter your access code and click "OK" when the `Enter NP-Scanner access code` dialog appears:
+![Screenshot of "Enter NP-Scanner access code" dialog](./.readme/userscript-prompt-code.png)
+
+6. Done! If it worked, your shared scanning data should be loaded. If it didn't work, reset data by adding `#wipe-np-scanner` to the page URL and refresh. If it still doesn't work, try Firefox. If you're already on Firefox, it's probably broken and you'll need to debug it. Good luck. You can open the browser system console with Ctrl-Shift-J to see some Greasemonkey errors that don't show in the regular console.
+
+Userscript only tested in Firefox.
