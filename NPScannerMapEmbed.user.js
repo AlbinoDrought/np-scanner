@@ -18,6 +18,7 @@ async function loadData(NeptunesPride, match) {
   const apiResponse = await resp.json();
 
   // import better star data
+  const starsToRename = [];
   Object.keys(apiResponse.scanning_data.stars).forEach((uid) => {
     var gameStateStar = NeptunesPride.universe.galaxy.stars[uid];
     if (gameStateStar.v === '1') { // uses strings
@@ -33,7 +34,8 @@ async function loadData(NeptunesPride, match) {
 
     gameStateStar.v = apiResponseStar.v; // uses strings
     gameStateStar.st = apiResponseStar.st; // strength
-    // todo: totalDefenses field, I assume this includes fleet strength
+    // I think this field should be the star power + orbiting fleet power.
+    // it gets recalculated when we call NeptunesPride.universe.addGalaxy
     gameStateStar.totalDefenses = gameStateStar.st;
     gameStateStar.e = apiResponseStar.e; // econ
     gameStateStar.i = apiResponseStar.i; // industry
@@ -42,7 +44,7 @@ async function loadData(NeptunesPride, match) {
     gameStateStar.nr = apiResponseStar.nr; // natural resources
     gameStateStar.r = apiResponseStar.r; // resources
     gameStateStar.ga = apiResponseStar.ga; // warp gate presence
-    gameStateStar.n = `[${apiResponseStar.n}]`;
+    starsToRename.push(uid);
 
     // cloneInto prevents data access errors
     NeptunesPride.universe.galaxy.stars[uid] = cloneInto(
@@ -52,6 +54,7 @@ async function loadData(NeptunesPride, match) {
   });
 
   // import fleets
+  const fleetsToRename = [];
   Object.keys(apiResponse.scanning_data.fleets).forEach((uid) => {
     var gameStateFleet = NeptunesPride.universe.galaxy.fleets[uid];
     if (gameStateFleet) {
@@ -66,14 +69,13 @@ async function loadData(NeptunesPride, match) {
     }
 
     // if this ran multiple times, values would get wrapped multiple times
-    apiResponseFleet.n = `[${apiResponseFleet.n}]`;
-    apiResponseFleet.st = `[${apiResponseFleet.st}]`;
     apiResponseFleet.orders = apiResponseFleet.o;
     apiResponseFleet.player = NeptunesPride.universe.galaxy.players[apiResponseFleet.puid];
     // not sure if this is correct, but makes some sense
     apiResponseFleet.path = apiResponseFleet.orders
       .map(o => o[1]) // grab star ID
       .map(sid => NeptunesPride.universe.galaxy.stars[sid]); // map to star
+    fleetsToRename.push(uid);
 
     // cloneInto prevents data access errors
     NeptunesPride.universe.galaxy.fleets[uid] = cloneInto(
@@ -81,6 +83,20 @@ async function loadData(NeptunesPride, match) {
       window,
     );
     // apiResponseFleet is not close to a 1:1 match with real data, but it renders
+  });
+
+  // make game reload and hopefully fix the data
+  NeptunesPride.universe.addGalaxy(NeptunesPride.universe.galaxy);
+
+  // make the modified stars and fleets stand out, so we know the data is from np-scanner
+  starsToRename.forEach((uid) => {
+    NeptunesPride.universe.galaxy.stars[uid].n = `[${NeptunesPride.universe.galaxy.stars[uid].n}]`;
+    NeptunesPride.universe.galaxy.stars[uid].st = `[${NeptunesPride.universe.galaxy.stars[uid].st}]`;
+  });
+
+  fleetsToRename.forEach((uid) => {
+    NeptunesPride.universe.galaxy.fleets[uid].n = `[${NeptunesPride.universe.galaxy.fleets[uid].n}]`;
+    NeptunesPride.universe.galaxy.fleets[uid].st = `[${NeptunesPride.universe.galaxy.fleets[uid].st}]`;
   });
 
   // trigger redraw
