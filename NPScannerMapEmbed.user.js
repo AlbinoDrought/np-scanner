@@ -164,6 +164,20 @@ function boot(window) {
   }
   
   loadData(window.NeptunesPride, match);
+
+  // when universe data is reloaded, also reload np-scanner data
+  // (you can test this by clicking the "Credits: $123 / Production: 24h" bar at the top)
+  // window.NeptunesPride.np.on("order:full_universe", () => loadData(window.NeptunesPride, match));
+  // (this doesn't work - I think because of unsafeWindow - polling for changes instead)
+  let lastLoad = window.NeptunesPride.universe.now;
+  setInterval(async () => {
+    if (window.NeptunesPride.universe.now === lastLoad) {
+      return;
+    }
+
+    await loadData(window.NeptunesPride, match);
+    lastLoad = window.NeptunesPride.universe.now;
+  }, 1000);
 }
 
 // wait for NeptunesPride global object to appear
