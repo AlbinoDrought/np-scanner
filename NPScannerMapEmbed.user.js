@@ -106,7 +106,7 @@ async function loadData(NeptunesPride, match) {
   console.log('[np-scanner]', 'clean init finished');
 }
 
-function boot(window) {
+async function boot(window) {
   if (!window.NeptunesPride) {
     throw new Error('Entire window.NeptunesPride missing');
   }
@@ -163,7 +163,7 @@ function boot(window) {
     localStorage.setItem('np-scanner', JSON.stringify(state));
   }
   
-  loadData(window.NeptunesPride, match);
+  await loadData(window.NeptunesPride, match);
 
   // when universe data is reloaded, also reload np-scanner data
   // (you can test this by clicking the "Credits: $123 / Production: 24h" bar at the top)
