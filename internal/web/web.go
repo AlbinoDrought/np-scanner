@@ -2,8 +2,10 @@ package web
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"go.albinodrought.com/neptunes-pride/internal/actions"
@@ -24,7 +25,8 @@ import (
 	"go.albinodrought.com/neptunes-pride/internal/types"
 )
 
-//go:generate $GOPATH/bin/rice embed-go
+//go:embed packaged
+var packaged embed.FS
 
 type WebOptions struct {
 	Address    string
@@ -415,8 +417,11 @@ func (ws *webServer) Router() http.Handler {
 	r.HandleFunc("/api/matches/{gameNumber}/player-snapshots/{player}", ws.IndexPlayerSnapshots)
 	r.HandleFunc("/api/matches/{gameNumber}/merged-snapshot", ws.ShowMergedSnapshot)
 
-	box := rice.MustFindBox("packaged")
-	r.PathPrefix("/").Handler(http.FileServer(&SPAFileSystem{box.HTTPBox()}))
+	sub, err := fs.Sub(packaged, "packaged")
+	if err != nil {
+		panic(err)
+	}
+	r.PathPrefix("/").Handler(http.FileServer(&SPAFileSystem{http.FS(sub)}))
 
 	// allow read-only CORS for userscript usage
 	handler := cors.New(cors.Options{
