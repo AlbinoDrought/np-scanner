@@ -1,5 +1,5 @@
 # Build SPA
-FROM node:16-alpine3.12 as SPA
+FROM node:16-alpine3.12 AS SPA
 
 COPY ./ui /ui
 COPY Makefile /
@@ -8,7 +8,7 @@ WORKDIR /
 RUN apk add --no-cache make && make ui
 
 # Build binary
-FROM golang:1.17.1-alpine as builder
+FROM golang:1.17.1-alpine AS builder
 
 RUN apk add --no-cache make git
 
