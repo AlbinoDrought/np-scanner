@@ -54,13 +54,13 @@ func Merge(responses ...*types.APIResponse) *types.APIResponse {
 				basePlayer.PrivatePlayer = player.PrivatePlayer
 
 				// assume this also means private tech data needs to be imported
-				basePlayer.Tech.Scanning.PrivateTechResearchStatus = player.Tech.Scanning.PrivateTechResearchStatus
-				basePlayer.Tech.Propulsion.PrivateTechResearchStatus = player.Tech.Propulsion.PrivateTechResearchStatus
-				basePlayer.Tech.Terraforming.PrivateTechResearchStatus = player.Tech.Terraforming.PrivateTechResearchStatus
-				basePlayer.Tech.Research.PrivateTechResearchStatus = player.Tech.Research.PrivateTechResearchStatus
-				basePlayer.Tech.Weapons.PrivateTechResearchStatus = player.Tech.Weapons.PrivateTechResearchStatus
 				basePlayer.Tech.Banking.PrivateTechResearchStatus = player.Tech.Banking.PrivateTechResearchStatus
+				basePlayer.Tech.Experimentation.PrivateTechResearchStatus = player.Tech.Experimentation.PrivateTechResearchStatus
 				basePlayer.Tech.Manufacturing.PrivateTechResearchStatus = player.Tech.Manufacturing.PrivateTechResearchStatus
+				basePlayer.Tech.Range.PrivateTechResearchStatus = player.Tech.Range.PrivateTechResearchStatus
+				basePlayer.Tech.Scan.PrivateTechResearchStatus = player.Tech.Scan.PrivateTechResearchStatus
+				basePlayer.Tech.Weapons.PrivateTechResearchStatus = player.Tech.Weapons.PrivateTechResearchStatus
+				basePlayer.Tech.Terraforming.PrivateTechResearchStatus = player.Tech.Terraforming.PrivateTechResearchStatus
 
 				base.ScanningData.Players[playerIndex] = basePlayer
 			}

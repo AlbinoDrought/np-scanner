@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/GeertJohan/go.rice v1.0.2
 	github.com/gorilla/mux v1.8.0
+	github.com/rs/cors v1.8.0
 	github.com/spf13/cobra v1.2.1
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
@@ -17,7 +18,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jessevdk/go-flags v1.4.0 // indirect
 	github.com/nkovacs/streamquote v1.0.0 // indirect
-	github.com/rs/cors v1.8.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.0.1 // indirect

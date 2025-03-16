@@ -6,8 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strconv"
-	"strings"
 
 	"go.albinodrought.com/neptunes-pride/internal/types"
 )
@@ -41,17 +39,15 @@ func (c *httpClient) State(ctx context.Context, request *Request) (*types.APIRes
 
 	httpRequest, err := http.NewRequestWithContext(
 		ctx,
-		"POST",
-		"https://np.ironhelmet.com/api",
-		strings.NewReader(content),
+		"GET",
+		"https://np.ironhelmet.com/api?"+content,
+		nil,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	httpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	httpRequest.Header.Set("Content-Length", strconv.Itoa(len(content)))
 	httpRequest.Header.Set("User-Agent", "NP Scanner by github.com/AlbinoDrought")
 
 	httpResp, err := c.base.Do(httpRequest)

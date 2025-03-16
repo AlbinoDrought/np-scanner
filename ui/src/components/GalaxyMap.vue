@@ -15,7 +15,9 @@ import {
   Options,
 } from 'vis-network';
 
-import { APIResponse, Fleet, Star } from '@/types/api';
+import {
+  APIResponse, Fleet, Star, TechKind,
+} from '@/types/api';
 import { shipGenerationPerTick } from '@/types/algo';
 
 const colorBase = [
@@ -153,11 +155,11 @@ export default class GalaxyMap extends Vue {
     Object.values(this.data.scanning_data!.fleets).forEach((fleet) => {
       data.push({
         id: `fleet-${fleet.uid}`,
-        label: `${fleet.n}\n${fleet.ouid ? '' : fleet.st}`,
+        label: `${fleet.uid}\n${fleet.ouid ? '' : fleet.st}`,
         group: `${fleet.puid}-fleets`,
         fixed: { x: true, y: true },
-        x: parseFloat(fleet.x) * this.scale,
-        y: parseFloat(fleet.y) * this.scale,
+        x: fleet.x * this.scale,
+        y: fleet.y * this.scale,
       });
 
       if (fleet.ouid) {
@@ -187,11 +189,13 @@ export default class GalaxyMap extends Vue {
       const fleetPowerDockedAtStar = fleetPowerDockedAtStars.get(star.uid) || 0;
       let altText = '?';
 
-      if (star.v === '1') {
+      let resourcesText = '';
+      if (star.v === 1) {
         const powerAtStar = (star.st || 0) + fleetPowerDockedAtStar;
         const econ = star.e || 0;
         const industry = star.i || 0;
         const science = star.s || 0;
+        const resources = star.r || 0;
 
         let powerLine = `${powerAtStar}`;
         if (industry > 0) {
@@ -199,11 +203,15 @@ export default class GalaxyMap extends Vue {
           if (player) {
             const newPowerPerTick = shipGenerationPerTick(
               industry,
-              player.tech.manufacturing.value,
-              this.data.scanning_data!.production_rate,
+              player.tech[TechKind.Manufacturing].level,
+              this.data.scanning_data!.productionRate,
             );
             powerLine += ` (+${newPowerPerTick.toFixed(2)}/t)`;
           }
+        }
+
+        if (resources > 0) {
+          resourcesText = ` :r${resources}`;
         }
 
         altText = [
@@ -213,10 +221,10 @@ export default class GalaxyMap extends Vue {
       }
       data.push({
         id: `star-${star.uid}`,
-        label: `${star.n}\n${altText}`,
+        label: `${star.n}${resourcesText}\n${altText}`,
         group: `${star.puid}-stars`,
-        x: parseFloat(star.x) * this.scale,
-        y: parseFloat(star.y) * this.scale,
+        x: star.x * this.scale,
+        y: star.y * this.scale,
       });
     });
 

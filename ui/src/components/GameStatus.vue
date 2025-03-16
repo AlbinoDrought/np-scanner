@@ -55,7 +55,7 @@
                 href="#"
                 @click.prevent="$emit(
                   'selectStar',
-                  data.scanning_data.stars[threat.fleetOwner.huid],
+                  data.scanning_data.stars[threat.fleetOwner.home || -1],
                 )"
                 v-text="threat.fleetOwner.alias"
               />
@@ -66,7 +66,7 @@
                 href="#"
                 @click.prevent="$emit(
                   'selectStar',
-                  data.scanning_data.stars[threat.targetStarOwner.huid],
+                  data.scanning_data.stars[threat.targetStarOwner.home || -1],
                 )"
                 v-text="threat.targetStarOwner.alias"
               />
@@ -76,7 +76,7 @@
             Fleet
             <strong>
               <a href="#" @click.prevent="$emit('selectFleet', threat.fleet)">
-                {{ threat.fleet.n }}
+                {{ threat.fleet.uid }}
               </a>
             </strong>
             headed to
@@ -130,16 +130,16 @@
             <strong>
               <a
                 href="#"
-                @click.prevent="$emit('selectStar', data.scanning_data.stars[player.huid])"
+                @click.prevent="$emit('selectStar', data.scanning_data.stars[player.home])"
                 v-text="player.alias"
               />
             </strong>
             <span>
-              ({{ player.total_economy }}
+              ({{ player.totalEconomy }}
               |
-              {{ player.total_industry }}
+              {{ player.totalIndustry }}
               |
-              {{ player.total_science }})
+              {{ player.totalScience }})
             </span>
             <span>
               ${{ player.cash }}
@@ -149,9 +149,9 @@
             </span>
           </span>
           <span v-if="player.conceded === 3">(completely wiped out)</span>
-          <span>Weapons Level {{ player.tech.weapons.level }}</span>
-          <span>Total Ships: {{ player.total_strength }}</span>
-          <span>Total Carriers: {{ player.total_fleets }}</span>
+          <span>Weapons Level {{ player.tech[TechKind.Weapons].level }}</span>
+          <span>Total Ships: {{ player.totalStrength }}</span>
+          <span>Total Carriers: {{ player.totalFleets }}</span>
           <span>{{ currentResearchText(player) }}</span>
           <span>{{ nextResearchText(player) }}</span>
         </p>
@@ -165,32 +165,28 @@
         >
           <span>
             <strong>
-              <a
-                href="#"
-                @click.prevent="$emit('selectStar', data.scanning_data.stars[player.huid])"
-                v-text="player.alias"
-              />
+              <span v-text="player.alias" />
             </strong>
             <span>
-              ({{ player.total_economy }}
+              ({{ player.totalEconomy }}
               |
-              {{ player.total_industry }}
+              {{ player.totalIndustry }}
               |
-              {{ player.total_science }})
+              {{ player.totalScience }})
             </span>
             <span v-if="player.ai">
               [AI]
             </span>
           </span>
           <span v-if="player.conceded === 3">(completely wiped out)</span>
-          <span>Weapons Level {{ player.tech.weapons.level }}</span>
+          <span>Weapons Level {{ player.tech[TechKind.Weapons].level }}</span>
           <span>
-            Total Ships: {{ player.total_strength }},
+            Total Ships: {{ player.totalStrength }},
             Visible: {{ visibleAndHiddenStrength[player.uid].visible }},
             Hidden: {{ visibleAndHiddenStrength[player.uid].hidden }}
           </span>
           <span>
-            Total Carriers: {{ player.total_fleets }},
+            Total Carriers: {{ player.totalFleets }},
             Visible: {{ visibleAndHiddenFleets[player.uid].visible }},
             Hidden: {{ visibleAndHiddenFleets[player.uid].hidden }}
           </span>
@@ -223,7 +219,8 @@ import {
   PublicPlayer,
   PublicTechResearchStatus,
   Star,
-  techs,
+  TechKind,
+  TechKinds,
 } from '@/types/api';
 import {
   distanceBetween,
@@ -236,11 +233,14 @@ import TimeTravel from './TimeTravel.vue';
 
 const forceGrabTechState = (
   player: PublicPlayer,
-  tech: string,
-): PublicTechResearchStatus&PrivateTechResearchStatus => {
-  const techState = (player.tech as any)[tech];
-  return techState as PublicTechResearchStatus&PrivateTechResearchStatus;
-};
+  tech: TechKind,
+): PublicTechResearchStatus&PrivateTechResearchStatus => ({
+  kind: tech,
+  level: 0,
+  research: 0,
+  cost: 0,
+  ...player.tech[tech],
+});
 
 @Component({
   components: {
@@ -265,6 +265,8 @@ export default class GameStatus extends Vue {
   private timeTravel = false;
 
   public moreInfo = false;
+
+  TechKind = TechKind;
 
   public async tryApiKey() {
     try {
@@ -331,7 +333,7 @@ export default class GameStatus extends Vue {
 
   public playerDead(player: PublicPlayer): boolean {
     // conceded===3 is supposed to work, but sometimes it stays at 1/2
-    return player.conceded === 3 || (player.total_strength === 0 && player.total_stars === 0);
+    return player.conceded === 3 || (player.totalStrength === 0 && player.totalStars === 0);
   }
 
   private get visibleStrength(): Map<number, number> {
@@ -366,7 +368,7 @@ export default class GameStatus extends Vue {
 
     Object.values(this.data.scanning_data!.players).forEach((player) => {
       const visible = visibleStrength.get(player.uid) || 0;
-      const hidden = player.total_strength - visible;
+      const hidden = player.totalStrength - visible;
       strengths[player.uid] = { visible, hidden };
     });
 
@@ -385,7 +387,7 @@ export default class GameStatus extends Vue {
 
     Object.values(this.data.scanning_data!.players).forEach((player) => {
       const visible = visibleFleets.get(player.uid) || 0;
-      const hidden = player.total_fleets - visible;
+      const hidden = player.totalFleets - visible;
       fleets[player.uid] = { visible, hidden };
     });
 
@@ -451,10 +453,11 @@ export default class GameStatus extends Vue {
 
           const distance = distanceBetween(targetStar, fleet);
 
-          let fleetSpeed = this.data.scanning_data!.fleet_speed;
-          if (fleet.w) {
-            fleetSpeed *= 3;
-          }
+          const { fleetSpeed } = this.data.scanning_data!;
+          // todo: reimpl new warpgate logic
+          // if (fleet.w) {
+          //   fleetSpeed *= 3;
+          // }
 
           const travelTicks = Math.ceil(distance / fleetSpeed);
 
@@ -477,9 +480,9 @@ export default class GameStatus extends Vue {
             travelTime: this.adjustedTicksToTime(travelTicks),
             battleResults: guessBattle(
               fleet.st,
-              fleetOwner.tech.weapons.level,
+              fleetOwner.tech[TechKind.Weapons].level,
               targetStarTrueStrength,
-              targetStarOwner.tech.weapons.level,
+              targetStarOwner.tech[TechKind.Weapons].level,
             ),
           });
         }
@@ -490,22 +493,22 @@ export default class GameStatus extends Vue {
   }
 
   public get highestTechOwners() {
-    const highestTechOwnerMap = new Map<string, number>();
-    const privateTechOwnerMap = new Map<string, number>();
+    const highestTechOwnerMap = new Map<TechKind, number>();
+    const privateTechOwnerMap = new Map<TechKind, number>();
 
     this.publicPlayers.forEach((player) => {
-      techs.forEach((tech) => {
+      for (const tech of TechKinds) {
         const currentHigh = highestTechOwnerMap.get(tech);
         const value = forceGrabTechState(player, tech).level;
 
         if (value > (currentHigh || 0)) {
           highestTechOwnerMap.set(tech, player.uid);
         }
-      });
+      }
     });
 
     this.privatePlayers.forEach((player) => {
-      techs.forEach((tech) => {
+      for (const tech of TechKinds) {
         const currentHigh = highestTechOwnerMap.get(tech);
         const currentPrivateHigh = privateTechOwnerMap.get(tech);
         const value = forceGrabTechState(player, tech).level;
@@ -517,7 +520,7 @@ export default class GameStatus extends Vue {
         if (value > (currentPrivateHigh || 0)) {
           privateTechOwnerMap.set(tech, player.uid);
         }
-      });
+      }
     });
 
     return {
@@ -551,16 +554,29 @@ export default class GameStatus extends Vue {
     return this.privateFleetThreats.filter((t) => t.battleResults.attackerWins).length;
   }
 
-  public niceTechName(tech: string) {
-    return ({
-      scanning: 'Scanning',
-      terraforming: 'Terraforming',
-      propulsion: 'Hyperspace Range',
-      research: 'Experimentation',
-      weapons: 'Weapons',
-      banking: 'Banking',
-      manufacturing: 'Manufacturing',
-    } as any)[tech] || tech;
+  public niceTechName(tech: TechKind) {
+    if (tech === TechKind.Banking) {
+      return 'Banking';
+    }
+    if (tech === TechKind.Experimentation) {
+      return 'Experimentation';
+    }
+    if (tech === TechKind.Manufacturing) {
+      return 'Manufacturing';
+    }
+    if (tech === TechKind.Range) {
+      return 'Hyperspace Range';
+    }
+    if (tech === TechKind.Scan) {
+      return 'Scanning';
+    }
+    if (tech === TechKind.Terraforming) {
+      return 'Terraforming';
+    }
+    if (tech === TechKind.Weapons) {
+      return 'Weapons';
+    }
+    return `${tech}`;
   }
 
   private techProgress(
@@ -576,24 +592,24 @@ export default class GameStatus extends Vue {
     status: PublicTechResearchStatus&PrivateTechResearchStatus,
     targetLevel: number,
   ) {
-    if (player.total_science <= 0) {
+    if (player.totalScience <= 0) {
       return 'stalled (user has no science)';
     }
 
-    const ticksNeeded = ticksNeededForResearch(targetLevel, status.research, player.total_science);
+    const ticksNeeded = ticksNeededForResearch(targetLevel, status.research, player.totalScience);
     return `${ticksNeeded} ticks (${this.adjustedTicksToTime(ticksNeeded)})`;
   }
 
   private adjustedTicksToTime(unadjustedTicks: number): string {
     const adjustedTicks = Math.max(
       0,
-      unadjustedTicks - this.data.scanning_data!.tick_fragment,
+      unadjustedTicks - this.data.scanning_data!.tickFragment,
     );
     return this.ticksToTime(adjustedTicks);
   }
 
   private ticksToTime(ticks: number): string {
-    const ticksAsMinutes = ticks * this.data.scanning_data!.tick_rate;
+    const ticksAsMinutes = ticks * this.data.scanning_data!.tickRate;
 
     let minutesRemaining = ticksAsMinutes;
 
@@ -626,10 +642,10 @@ export default class GameStatus extends Vue {
   }
 
   private nextResearchText(player: PublicPlayer&PrivatePlayer) {
-    let tech = forceGrabTechState(player, player.researching_next);
+    let tech = forceGrabTechState(player, player.researchingNext);
     let targetLevel = tech.level + 1;
 
-    if (player.researching === player.researching_next) {
+    if (player.researching === player.researchingNext) {
       // player has the same research queued twice
       // the regular research is for `tech.level + 1`, this is for `tech.level + 2`
       targetLevel += 1;
@@ -643,7 +659,7 @@ export default class GameStatus extends Vue {
 
     return [
       'Next ',
-      this.niceTechName(player.researching_next),
+      this.niceTechName(player.researchingNext),
       ' ',
       targetLevel,
       ', currently ',

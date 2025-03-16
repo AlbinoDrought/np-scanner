@@ -126,7 +126,7 @@ func PollMatch(ctx context.Context, db matchstore.MatchStore, client npapi.Neptu
 		config.LatestSnapshot = resp.ScanningData.Now
 		match.PlayerCreds[i] = config
 
-		if resp.ScanningData.GameOver == types.GameOverYes {
+		if resp.ScanningData.GameOver {
 			match.Finished = true
 			log.Printf("finished game %v user %v \"%v\"", gameNumber, config.PlayerUID, config.PlayerAlias)
 		}

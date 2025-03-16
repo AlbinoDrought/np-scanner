@@ -1,7 +1,7 @@
 export const shipGenerationPerRound = (
   industry: number,
   manufacturing: number,
-) => industry * (manufacturing + 5);
+) => industry * (manufacturing + 4);
 
 export const shipGenerationPerTick = (
   industry: number,
@@ -10,8 +10,8 @@ export const shipGenerationPerTick = (
 ) => shipGenerationPerRound(industry, manufacturing) / productionRate;
 
 interface PositionedThing {
-  x: string;
-  y: string;
+  x: number;
+  y: number;
 }
 
 export const distanceBetween = (
@@ -19,8 +19,8 @@ export const distanceBetween = (
   b: PositionedThing,
 ) => {
   // pythagoras
-  const dX = Math.abs(parseFloat(a.x) - parseFloat(b.x));
-  const dY = Math.abs(parseFloat(a.y) - parseFloat(b.y));
+  const dX = Math.abs(a.x - b.x);
+  const dY = Math.abs(a.y - b.y);
   return Math.sqrt(
     (dX * dX) + (dY * dY),
   );

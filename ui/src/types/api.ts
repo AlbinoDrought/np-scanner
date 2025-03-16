@@ -1,100 +1,125 @@
 export interface Fleet {
-  uid: Int16Array;
-  o: number[][];
-  n: string;
+  uid: number;
   puid: number;
-  ouid: number;
-  w: number;
-  x: string;
-  y: string;
+
+  x: number;
+  y: number;
+
+  lx: number;
+  ly: number;
+
+  exp: number;
+  speed: number;
   st: number;
-  lx: string;
-  ly: string;
+
+  lsuid: number;
+  ouid: number;
+  o: number[][];
+
+  l: unknown;
 }
 
 export interface PublicStar {
   uid: number;
   n: string;
   puid: number;
-  v: string;
-  x: string;
-  y: string;
+  v: number;
+  x: number;
+  y: number;
+
+  exp: unknown;
 }
 
 export interface PrivateStar {
-  c: number;
+  r: number;
+  nr: number;
+  yard: number;
   e: number;
   i: number;
   s: number;
-  r: number;
   ga: number;
-  nr: number;
   st: number;
 }
 
 export type Star = PublicStar & Partial<PrivateStar>;
 
+export enum TechKind {
+  Banking = 0,
+  Experimentation = 1,
+  Manufacturing = 2,
+  Range = 3,
+  Scan = 4,
+  Weapons = 5,
+  Terraforming = 6,
+}
+
+export const TechKinds = [
+  TechKind.Banking,
+  TechKind.Experimentation,
+  TechKind.Manufacturing,
+  TechKind.Range,
+  TechKind.Scan,
+  TechKind.Weapons,
+  TechKind.Terraforming,
+];
+
 export interface PublicTechResearchStatus {
+  kind: TechKind;
   level: number;
-  value: number;
 }
 
 export interface PrivateTechResearchStatus {
-  sv: number;
   research: number;
-  bv: number;
-  brr: number;
+  cost: number;
 }
 
 export type TechResearchStatus = PublicTechResearchStatus & Partial<PrivateTechResearchStatus>;
 
 export interface Tech {
-  scanning: TechResearchStatus;
-  propulsion: TechResearchStatus;
-  terraforming: TechResearchStatus;
-  research: TechResearchStatus;
-  weapons: TechResearchStatus;
-  banking: TechResearchStatus;
-  manufacturing: TechResearchStatus;
+  [TechKind.Banking]: TechResearchStatus;
+  [TechKind.Experimentation]: TechResearchStatus;
+  [TechKind.Manufacturing]: TechResearchStatus;
+  [TechKind.Range]: TechResearchStatus;
+  [TechKind.Scan]?: TechResearchStatus;
+  [TechKind.Weapons]: TechResearchStatus;
+  [TechKind.Terraforming]?: TechResearchStatus;
 }
 
-export const techs = [
-  'scanning',
-  'propulsion',
-  'terraforming',
-  'research',
-  'weapons',
-  'banking',
-  'manufacturing',
-];
-
 export interface PublicPlayer {
-  total_industry: number;
-  regard: number;
-  total_science: number;
   uid: number;
-  ai: number;
-  huid: number;
-  total_stars: number;
-  total_fleets: number;
-  total_strength: number;
   alias: string;
-  tech: Tech;
   avatar: number;
-  conceded: number;
+  race: unknown;
+  color: number;
+  shape: number;
+  totalStars: number;
+  totalFleets: number;
+  totalStrength: number;
+  totalEconomy: number;
+  totalIndustry: number;
+  totalScience: number;
+  acceptedVassal: unknown;
+  offersOfFealty: unknown;
+  vassals: unknown;
+  karmaToGive: number;
   ready: number;
-  total_economy: number;
-  missed_turns: number;
-  karma_to_give: number;
+  missedTurns: number;
+  conceded: number;
+  ai: number;
+  regard: number;
+  tech: Tech;
 }
 
 export interface PrivatePlayer {
-  researching: string;
-  war: { [key: string]: number };
-  stars_abandoned: number;
   cash: number;
-  researching_next: string;
+  researching: TechKind;
+  researchingNext: TechKind;
+  war: { [key: string]: number };
+  // NP4 *sic*, it's still countdown_to_war and not countdownToWar
   countdown_to_war: { [key: string]: number };
+  starsAbandoned: number;
+  ledger: unknown;
+  home: number;
 }
 
 export type Player = PublicPlayer & Partial<PrivatePlayer>;
@@ -104,38 +129,42 @@ export const isPrivatePlayer = (
 ): player is PublicPlayer&PrivatePlayer => true
   && player.researching !== undefined
   && player.war !== undefined
-  && player.stars_abandoned !== undefined
+  && player.starsAbandoned !== undefined
   && player.cash !== undefined
-  && player.researching_next !== undefined
+  && player.researchingNext !== undefined
   && player.countdown_to_war !== undefined
-  && player.researching !== '';
+  && player.researching !== undefined
+  && !!player.home;
 
 export interface ScanningData {
-  fleets: { [key: string]: Fleet };
-  fleet_speed: number;
-  paused: boolean;
-  productions: number;
-  tick_fragment: number;
+  playerUid: number;
   now: number;
-  tick_rate: number;
-  production_rate: number;
-  stars: { [key: string]: Star };
-  stars_for_victory: number;
-  game_over: number;
+  tickFragment: number;
+  paused: boolean;
   started: boolean;
-  start_time: number;
-  total_stars: number;
-  production_counter: number;
-  trade_scanned: number;
+  gameOver: boolean;
+  startTime: number;
+  productions: number;
+  productionRate: number;
+  productionCounter: number;
   tick: number;
-  trade_cost: number;
-  name: string;
-  player_uid: number;
   admin: number;
-  turn_based: number;
-  war: number;
+  name: string;
+  starsForVictory: number;
+  totalStars: number;
+  tickRate: number;
+  fleetSpeed: number;
   players: { [key: string]: Player };
-  turn_based_time_out: number;
+  stars: { [key: string]: Star };
+  fleets: { [key: string]: Fleet };
+
+  config: unknown;
+  victoryPoints: unknown;
+  starsForFealty: unknown;
+  turnBased: unknown;
+  turnDeadline: unknown;
+  tradeCost: unknown;
+  tradeScanned: unknown;
 }
 
 export interface APIResponse {

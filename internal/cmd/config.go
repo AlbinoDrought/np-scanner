@@ -18,7 +18,7 @@ var (
 )
 
 func addGlobalConfigFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVar(&matchStoreDbPath, "db-path", "np.db", "Database Path (Match Store)")
+	cmd.PersistentFlags().StringVar(&matchStoreDbPath, "db-path", "np4.db", "Database Path (Match Store)")
 	cmd.PersistentFlags().StringVar(&notificationsDbPath, "notifications-db-path", "np-notifications.db", "Database Path (Notifications)")
 	cmd.PersistentFlags().StringVar(&discordWebhookURL, "discord-webhook-url", os.Getenv("NP_SCANNER_DISCORD_WEBHOOK_URL"), "Discord Webhook URL")
 }
