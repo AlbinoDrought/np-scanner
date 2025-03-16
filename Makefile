@@ -12,4 +12,4 @@ dist/np-scanner:
 
 .PHONY: ui
 ui:
-	cd ui && npm install && NODE_OPTIONS=--openssl-legacy-provider npm run build
+	cd ui && npm install && npm run build
