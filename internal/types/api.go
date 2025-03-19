@@ -1,5 +1,7 @@
 package types
 
+import "encoding/json"
+
 type Fleet struct {
 	UID      int `json:"uid"`
 	PlayerID int `json:"puid"`
@@ -22,23 +24,23 @@ type Fleet struct {
 }
 
 type PublicStar struct {
-	UID      int     `json:"uid"`
-	Name     string  `json:"n"`
-	PlayerID int     `json:"puid"`
-	Visible  int     `json:"v"`
-	X        float64 `json:"x"`
-	Y        float64 `json:"y"`
+	UID      int         `json:"uid"`
+	Name     string      `json:"n"`
+	PlayerID int         `json:"puid"`
+	Visible  json.Number `json:"v"` // `1` for visible, `"0"` for not visible?
+	X        float64     `json:"x"`
+	Y        float64     `json:"y"`
 }
 
 type PrivateStar struct {
-	Resources        int `json:"r"`
-	NaturalResources int `json:"nr"`
-	Yard             int `json:"yard"`
-	Economy          int `json:"e"`
-	Industry         int `json:"i"`
-	Science          int `json:"s"`
-	WarpGate         int `json:"ga"`
-	Strength         int `json:"st"`
+	Resources        int     `json:"r"`
+	NaturalResources int     `json:"nr"`
+	Yard             float64 `json:"yard"`
+	Economy          int     `json:"e"`
+	Industry         int     `json:"i"`
+	Science          int     `json:"s"`
+	WarpGate         int     `json:"ga"`
+	Strength         int     `json:"st"`
 }
 
 func (ps PrivateStar) Useful() bool {

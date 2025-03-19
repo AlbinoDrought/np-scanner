@@ -128,11 +128,11 @@ export const isPrivatePlayer = (
   player: Player,
 ): player is PublicPlayer&PrivatePlayer => true
   && player.researching !== undefined
-  && player.war !== undefined
+  && !!player.war
   && player.starsAbandoned !== undefined
   && player.cash !== undefined
   && player.researchingNext !== undefined
-  && player.countdown_to_war !== undefined
+  && !!player.countdown_to_war
   && player.researching !== undefined
   && !!player.home;
 
