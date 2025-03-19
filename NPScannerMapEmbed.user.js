@@ -8,7 +8,7 @@
 // ==/UserScript==
 
 async function loadData(NeptunesPride, match) {
-  const resp = await fetch(`${match.url}/api/matches/${match.gameNumber}/merged-snapshot?access_code=${match.code}`);
+  const resp = await fetch(`${match.url}/api/matches/${match.gameId}/merged-snapshot?access_code=${match.code}`);
   if (resp.status === 401) {
     const err = new Error(`Bad Response ${resp.status}: ${resp}`);
     console.error('[np-scanner]', err, resp, await resp.text());
@@ -21,13 +21,13 @@ async function loadData(NeptunesPride, match) {
   const starsToRename = [];
   Object.keys(apiResponse.scanning_data.stars).forEach((uid) => {
     var gameStateStar = NeptunesPride.universe.galaxy.stars[uid];
-    if (gameStateStar.v === '1') { // uses strings
+    if (gameStateStar.v === '1' || gameStateStar.v === 1) {
       // already visible normally
       return;
     }
 
     var apiResponseStar = apiResponse.scanning_data.stars[uid];
-    if (!apiResponseStar || apiResponseStar.v !== '1') { // uses strings
+    if (!apiResponseStar || (apiResponseStar.v !== '1' && apiResponseStar.v !== 1)) {
       // not visible in merged api response
       return;
     }
@@ -111,8 +111,8 @@ async function boot(window) {
     throw new Error('Entire window.NeptunesPride missing');
   }
 
-  if (!window.NeptunesPride.gameNumber) {
-    throw new Error('window.NeptunesPride.gameNumber missing');
+  if (!window.NeptunesPride.gameId) {
+    throw new Error('window.NeptunesPride.gameId missing');
   }
 
   var state = JSON.parse(localStorage.getItem('np-scanner')) || {
@@ -121,14 +121,14 @@ async function boot(window) {
     matches: {},
   };
   
-  var match = state.matches[window.NeptunesPride.gameNumber] || {
+  var match = state.matches[window.NeptunesPride.gameId] || {
     prompted: false,
     disabled: false,
     askedForCreds: false,
     url: '',
     code: '',
   };
-  match.gameNumber = window.NeptunesPride.gameNumber;
+  match.gameId = window.NeptunesPride.gameId;
   
   if (window.location.hash === '#wipe-np-scanner') {
     // if user entered wrong code, allow reprompt at #wipe-np-scanner
@@ -140,7 +140,7 @@ async function boot(window) {
     match.prompted = true;
     match.enabled = window.confirm('Enable NP-Scanner for this match?');
   
-    state.matches[window.NeptunesPride.gameNumber] = match;
+    state.matches[window.NeptunesPride.gameId] = match;
     localStorage.setItem('np-scanner', JSON.stringify(state));
   }
   
@@ -159,7 +159,7 @@ async function boot(window) {
     match.code = window.prompt('Enter NP-Scanner access code', state.lastCode);
     state.lastCode = match.lastCode;
   
-    state.matches[window.NeptunesPride.gameNumber] = match;
+    state.matches[window.NeptunesPride.gameId] = match;
     localStorage.setItem('np-scanner', JSON.stringify(state));
   }
   
