@@ -1,37 +1,45 @@
 package types
 
+import "encoding/json"
+
 type Fleet struct {
-	UID         int     `json:"uid"`
-	Unknown     int     `json:"l"`
-	Orders      [][]int `json:"o"`
-	Name        string  `json:"n"`
-	PlayerID    int     `json:"puid"`
+	UID      int `json:"uid"`
+	PlayerID int `json:"puid"`
+
+	CurrentX float64 `json:"x"`
+	CurrentY float64 `json:"y"`
+
+	LastX float64 `json:"lx"`
+	LastY float64 `json:"ly"`
+
+	XP       float64 `json:"exp"`
+	Speed    float64 `json:"speed"`
+	Strength int     `json:"st"`
+
+	LastStar    int     `json:"lsuid"`
 	CurrentStar int     `json:"ouid"`
-	WarpSpeed   int     `json:"w"`
-	CurrentX    string  `json:"x"`
-	CurrentY    string  `json:"y"`
-	Strength    int     `json:"st"`
-	LastX       string  `json:"lx"`
-	LastY       string  `json:"ly"`
+	Orders      [][]int `json:"o"`
+
+	// Unknown bool `json:"l"`
 }
 
 type PublicStar struct {
-	UID      int    `json:"uid"`
-	Name     string `json:"n"`
-	PlayerID int    `json:"puid"`
-	Visible  string `json:"v"`
-	X        string `json:"x"`
-	Y        string `json:"y"`
+	UID      int         `json:"uid"`
+	Name     string      `json:"n"`
+	PlayerID int         `json:"puid"`
+	Visible  json.Number `json:"v"` // `1` for visible, `"0"` for not visible?
+	X        float64     `json:"x"`
+	Y        float64     `json:"y"`
 }
 
 type PrivateStar struct {
-	ShipsPerTick     float64 `json:"c"`
+	Resources        int     `json:"r"`
+	NaturalResources int     `json:"nr"`
+	Yard             float64 `json:"yard"`
 	Economy          int     `json:"e"`
 	Industry         int     `json:"i"`
 	Science          int     `json:"s"`
-	Resources        int     `json:"r"`
 	WarpGate         int     `json:"ga"`
-	NaturalResources int     `json:"nr"`
 	Strength         int     `json:"st"`
 }
 
@@ -44,20 +52,28 @@ type Star struct {
 	PrivateStar
 }
 
+type TechKind int
+
+const TechBanking = TechKind(0)
+const TechExperimentation = TechKind(1)
+const TechManufacturing = TechKind(2)
+const TechRange = TechKind(3)
+const TechScan = TechKind(4)
+const TechWeapons = TechKind(5)
+const TechTerraforming = TechKind(6)
+
 type PublicTechResearchStatus struct {
-	Level int     `json:"level"`
-	Value float64 `json:"value"`
+	Kind  TechKind `json:"kind"`
+	Level int      `json:"level"`
 }
 
 type PrivateTechResearchStatus struct {
-	Sv               float64 `json:"sv"`
-	Research         int     `json:"research"`
-	Bv               float64 `json:"bv"`
-	CostPerTechLevel int     `json:"brr"`
+	Research int `json:"research"`
+	Cost     int `json:"cost"`
 }
 
 func (ptrs PrivateTechResearchStatus) Useful() bool {
-	return ptrs.Sv > 0 || ptrs.Research > 0 || ptrs.Bv > 0 || ptrs.CostPerTechLevel > 0
+	return ptrs.Research > 0 || ptrs.Cost > 0
 }
 
 type TechResearchStatus struct {
@@ -66,13 +82,13 @@ type TechResearchStatus struct {
 }
 
 type Tech struct {
-	Scanning      TechResearchStatus `json:"scanning"`
-	Propulsion    TechResearchStatus `json:"propulsion"`
-	Terraforming  TechResearchStatus `json:"terraforming"`
-	Research      TechResearchStatus `json:"research"`
-	Weapons       TechResearchStatus `json:"weapons"`
-	Banking       TechResearchStatus `json:"banking"`
-	Manufacturing TechResearchStatus `json:"manufacturing"`
+	Banking         TechResearchStatus `json:"0"`
+	Experimentation TechResearchStatus `json:"1"`
+	Manufacturing   TechResearchStatus `json:"2"`
+	Range           TechResearchStatus `json:"3"`
+	Scan            TechResearchStatus `json:"4"`
+	Weapons         TechResearchStatus `json:"5"`
+	Terraforming    TechResearchStatus `json:"6"`
 }
 
 const (
@@ -83,36 +99,38 @@ const (
 )
 
 type PublicPlayer struct {
-	TotalIndustry int    `json:"total_industry"`
-	Regard        int    `json:"regard"`
-	TotalScience  int    `json:"total_science"`
 	UID           int    `json:"uid"`
-	Ai            int    `json:"ai"`
-	Huid          int    `json:"huid"`
-	TotalStars    int    `json:"total_stars"`
-	TotalFleets   int    `json:"total_fleets"`
-	TotalStrength int    `json:"total_strength"`
 	Alias         string `json:"alias"`
-	Tech          Tech   `json:"tech"`
 	Avatar        int    `json:"avatar"`
-	Conceded      int    `json:"conceded"`
+	Color         int    `json:"color"`
+	Shape         int    `json:"shape"`
+	TotalStars    int    `json:"totalStars"`
+	TotalFleets   int    `json:"totalFleets"`
+	TotalStrength int    `json:"totalStrength"`
+	TotalEconomy  int    `json:"totalEconomy"`
+	TotalIndustry int    `json:"totalIndustry"`
+	TotalScience  int    `json:"totalScience"`
+	KarmaToGive   int    `json:"karmaToGive"`
 	Ready         int    `json:"ready"`
-	TotalEconomy  int    `json:"total_economy"`
-	MissedTurns   int    `json:"missed_turns"`
-	KarmaToGive   int    `json:"karma_to_give"`
+	MissedTurns   int    `json:"missedTurns"`
+	Conceded      int    `json:"conceded"`
+	Ai            int    `json:"ai"`
+	Regard        int    `json:"regard"`
+	Tech          Tech   `json:"tech"`
 }
 
 type PrivatePlayer struct {
-	Researching     string         `json:"researching"`
-	War             map[string]int `json:"war"`
-	StarsAbandoned  int            `json:"stars_abandoned"`
 	Cash            int            `json:"cash"`
-	ResearchingNext string         `json:"researching_next"`
-	CountdownToWar  map[string]int `json:"countdown_to_war"`
+	Researching     TechKind       `json:"researching"`
+	ResearchingNext TechKind       `json:"researchingNext"`
+	War             map[string]int `json:"war"`
+	CountdownToWar  map[string]int `json:"countdown_to_war"` // NP4 *sic*, it's still countdown_to_war and not countdownToWar
+	StarsAbandoned  int            `json:"starsAbandoned"`
+	Home            int            `json:"home"`
 }
 
 func (pp PrivatePlayer) Useful() bool {
-	return pp.Researching != "" || (pp.War != nil && len(pp.War) > 0) || pp.StarsAbandoned > 0 || pp.Cash > 0 || pp.ResearchingNext != "" || (pp.CountdownToWar != nil && len(pp.CountdownToWar) > 0)
+	return pp.Cash > 0 || pp.Researching != 0 || pp.ResearchingNext != 0 || len(pp.War) > 0 || len(pp.CountdownToWar) > 0 || pp.StarsAbandoned > 0
 }
 
 type Player struct {
@@ -120,37 +138,27 @@ type Player struct {
 	PrivatePlayer
 }
 
-const (
-	GameOverNo  = 0
-	GameOverYes = 1
-)
-
 type ScanningData struct {
-	Fleets            map[string]Fleet  `json:"fleets"`
-	FleetSpeed        float64           `json:"fleet_speed"`
-	Paused            bool              `json:"paused"`
-	Productions       int               `json:"productions"`
-	TickFragment      float64           `json:"tick_fragment"`
+	PlayerUID         int               `json:"playerUid"`
 	Now               int64             `json:"now"`
-	TickRate          int               `json:"tick_rate"`
-	ProductionRate    int               `json:"production_rate"`
-	Stars             map[string]Star   `json:"stars"`
-	StarsForVictory   int               `json:"stars_for_victory"`
-	GameOver          int               `json:"game_over"`
+	TickFragment      float64           `json:"tickFragment"`
+	Paused            bool              `json:"paused"`
 	Started           bool              `json:"started"`
-	StartTime         int64             `json:"start_time"`
-	TotalStars        int               `json:"total_stars"`
-	ProductionCounter int               `json:"production_counter"`
-	TradeScanned      int               `json:"trade_scanned"`
+	GameOver          bool              `json:"gameOver"`
+	StartTime         int64             `json:"startTime"`
+	Productions       int               `json:"productions"`
+	ProductionRate    int               `json:"productionRate"`
+	ProductionCounter int               `json:"productionCounter"`
 	Tick              int               `json:"tick"`
-	TradeCost         int               `json:"trade_cost"`
-	Name              string            `json:"name"`
-	PlayerUID         int               `json:"player_uid"`
 	Admin             int               `json:"admin"`
-	TurnBased         int               `json:"turn_based"`
-	War               int               `json:"war"`
+	Name              string            `json:"name"`
+	StarsForVictory   int               `json:"starsForVictory"`
+	TotalStars        int               `json:"totalStars"`
+	TickRate          int               `json:"tickRate"`
+	FleetSpeed        float64           `json:"fleetSpeed"`
 	Players           map[string]Player `json:"players"`
-	TurnBasedTimeOut  int               `json:"turn_based_time_out"`
+	Stars             map[string]Star   `json:"stars"`
+	Fleets            map[string]Fleet  `json:"fleets"`
 }
 
 type APIResponse struct {

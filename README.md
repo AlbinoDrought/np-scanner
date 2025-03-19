@@ -61,7 +61,7 @@ services:
     - /some/local/path:/data
     command:
     - /np-scanner
-    - --db-path=/data/np.db
+    - --db-path=/data/np4.db
     - --notification-db-path=/data/np-notifications.db
     - serve
     ports:

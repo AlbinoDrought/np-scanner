@@ -23,7 +23,7 @@ func (t *notifiableThreat) createMessage(fleetOwner string, targetStarOwner stri
 	return fmt.Sprintf(
 		"%v's carrier %v is attacking %v's star %v with %v units",
 		fleetOwner,
-		t.threat.Fleet.Name,
+		t.threat.Fleet.UID,
 		targetStarOwner,
 		t.threat.TargetStar.Name,
 		t.threat.Fleet.Strength,
